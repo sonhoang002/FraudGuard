@@ -1,0 +1,106 @@
+# FraudGuard
+
+FraudGuard is a learning-first portfolio project for a real-time fraud detection and decisioning platform. It is being built in roughly 40 days to demonstrate practical backend engineering, PostgreSQL design, machine-learning integration, and explainable business decisions.
+
+## Current Progress
+
+Days 1-2 are complete:
+
+- Designed a PostgreSQL schema for users, accounts, transactions, and fraud predictions.
+- Added foreign keys, indexes, and database constraints for data integrity.
+- Kept immutable transaction events separate from historical fraud predictions.
+- Inserted sample data inside a database transaction.
+- Validated unique, check, and foreign-key constraints with intentionally invalid data.
+- Wrote a four-table query for customer transaction and fraud-prediction data.
+
+## Planned Architecture
+
+```text
+React analyst dashboard
+          |
+          v
+Node.js / Express API ----> PostgreSQL
+          |
+          v
+Python FastAPI ML service
+          |
+          v
+Fraud probability
+          |
+          v
+Node decision engine: APPROVE | REVIEW | BLOCK
+```
+
+The machine-learning service will estimate risk. The Node.js backend will own the business rules that turn a risk score into an operational decision.
+
+## Database Model
+
+```text
+users 1 ----< accounts 1 ----< transactions 1 ----< fraud_predictions
+```
+
+- A transaction records what happened.
+- A fraud prediction records what the system concluded about that transaction.
+- Predictions are historical: a transaction can have multiple scores from different model versions.
+- Transaction details are immutable after creation; only `transaction_status` can change.
+
+## Local Setup
+
+Prerequisites:
+
+- Node.js
+- PostgreSQL
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Create a local PostgreSQL database named `fraudguard`.
+
+3. Create a `.env` file from `.env.example` and set your local PostgreSQL password.
+
+4. Run `database/schema.sql` against the `fraudguard` database using your preferred PostgreSQL client.
+
+5. Insert the sample records:
+
+   ```bash
+   npm run seed
+   ```
+
+Run the seed script against an empty database. It uses a fixed sample username, so a second run will correctly fail the database's unique-username constraint.
+
+`database/validation.sql` contains intentionally invalid statements for manually testing database constraints. Run them one at a time; each is expected to fail.
+
+## Project Structure
+
+```text
+database/
+  schema.sql       PostgreSQL tables, constraints, and indexes
+  queries.js       Sample data insertion script
+  validation.sql   Intentional constraint failures and join practice
+  pool.js          PostgreSQL connection pool
+```
+
+## V1 Stack
+
+- React with JavaScript
+- Node.js and Express
+- PostgreSQL with `pg`
+- Python, pandas, NumPy, and scikit-learn
+- FastAPI
+- Docker
+
+## Security Note
+
+Never commit `.env` files, database passwords, or real credentials. `.env.example` documents the required variable without containing a secret.
+
+## Roadmap
+
+- Days 1-4: Architecture and PostgreSQL
+- Days 5-9: Express backend
+- Days 10-14: React analyst dashboard
+- Days 15-24: Python, data analysis, and machine learning
+- Days 25-33: FastAPI inference, decision engine, and explainability
+- Days 34-40: Testing, Docker, deployment, and documentation
