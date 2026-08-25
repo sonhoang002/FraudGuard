@@ -53,9 +53,3 @@ ON transactions(account_id);
 
 CREATE INDEX idx_fraud_predictions_transaction_id
 ON fraud_predictions(transaction_id);
-
-INSERT INTO users (username, password_hash, created_at)
-VALUES ('Customer1', 'Some_random_password', now());
-
-INSERT INTO accounts (user_id, account_type, created_at)
-VALUES ('')

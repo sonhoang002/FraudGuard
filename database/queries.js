@@ -48,7 +48,7 @@ async function insertStatement() {
       INSERT INTO fraud_predictions
         (transaction_id, model_version, score_probability, decision)
       VALUES
-        ($1, 0.01, 0.00, 'APPROVE')
+        ($1, 'v0.1', 0.00, 'APPROVE')
       `,
       [transactionInsert1.rows[0].id],
     );
@@ -58,7 +58,7 @@ async function insertStatement() {
       INSERT INTO fraud_predictions
         (transaction_id, model_version, score_probability, decision)
       VALUES
-        ($1, 0.01, 0.80, 'REVIEW')
+        ($1, 'v0.1', 0.80, 'REVIEW')
       `,
       [transactionInsert2.rows[0].id],
     );
@@ -71,5 +71,3 @@ async function insertStatement() {
     client.release();
   }
 }
-
-insertStatement().catch(console.error);

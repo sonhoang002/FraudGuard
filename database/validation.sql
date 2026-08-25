@@ -44,3 +44,44 @@ JOIN fraud_predictions
 ON transactions.id = fraud_predictions.transaction_id
 WHERE username = 'Customer1'
 ORDER BY occurred_at DESC
+
+BEGIN;
+
+INSERT INTO 
+    transactions (account_id, amount, device, merchant, transaction_status, currency, occurred_at)
+VALUES
+    (2, 100.00, 'Phone', 'Apple', 'PENDING', 'USD', NOW())
+RETURNING id;
+
+SELECT
+    t.id AS transaction_id,
+    u.username, 
+    t.amount, 
+    t.transaction_status, 
+    fp.id AS prediction_id, 
+    fp.model_version, 
+    fp.score_probability, 
+    fp.decision
+FROM
+    users AS u
+JOIN
+    accounts AS a
+ON
+    u.id = a.user_id
+JOIN 
+    transactions AS t
+ON
+    a.id = t.account_id
+LEFT JOIN
+    fraud_predictions AS fp
+ON
+    t.id = fp.transaction_id
+WHERE
+    u.username = 'Customer1'
+ORDER BY
+    t.occurred_at DESC,
+    t.id DESC,
+    fp.created_at DESC,
+    fp.id DESC;
+
+ROLLBACK;
