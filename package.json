@@ -1,0 +1,19 @@
+{
+  "name": "fraudguard",
+  "version": "1.0.0",
+  "description": "Learning-first real-time fraud detection and decisioning platform.",
+  "main": "index.js",
+  "scripts": {
+    "seed": "node database/queries.js",
+    "test": "echo \"No automated tests configured yet\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "pg": "^8.23.0"
+  }
+}
