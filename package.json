@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "seed": "node database/queries.js",
-    "test": "echo \"No automated tests configured yet\""
+    "test": "echo \"No automated tests configured yet\"",
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
   },
   "keywords": [],
   "author": "",
