@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "seed": "node database/queries.js",
-    "test": "echo \"No automated tests configured yet\"",
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
@@ -17,5 +17,9 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2"
   }
 }
