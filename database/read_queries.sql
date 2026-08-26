@@ -28,9 +28,6 @@ WHERE
 ORDER BY
     fraud_predictions.created_at DESC
 
-INSERT INTO fraud_predictions(transaction_id, model_version, score_probability, decision)
-VALUES (4, 'v0.2', 0.75, 'REVIEW')
-
 SELECT
     t.id AS transaction_id,
     u.username, 

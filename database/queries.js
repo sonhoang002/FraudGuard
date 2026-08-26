@@ -1,4 +1,4 @@
-const pool = require("../database/pool");
+const pool = require("./pool");
 
 async function insertStatement() {
   const client = await pool.connect();
@@ -63,6 +63,16 @@ async function insertStatement() {
       [transactionInsert2.rows[0].id],
     );
 
+    await client.query(
+      `
+      INSERT INTO fraud_predictions
+        (transaction_id, model_version, score_probability, decision)
+      VALUES
+        ($1, 'v0.2', 0.75, 'REVIEW')
+      `,
+      [transactionInsert2.rows[0].id],
+    );
+
     await client.query("COMMIT");
   } catch (err) {
     await client.query("ROLLBACK");
@@ -71,3 +81,5 @@ async function insertStatement() {
     client.release();
   }
 }
+
+insertStatement().catch(console.error);
