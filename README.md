@@ -4,14 +4,19 @@ FraudGuard is a learning-first portfolio project for a real-time fraud detection
 
 ## Current Progress
 
-Days 1-2 are complete:
+Days 1-7 are complete:
 
 - Designed a PostgreSQL schema for users, accounts, transactions, and fraud predictions.
 - Added foreign keys, indexes, and database constraints for data integrity.
 - Kept immutable transaction events separate from historical fraud predictions.
 - Inserted sample data inside a database transaction.
 - Validated unique, check, and foreign-key constraints with intentionally invalid data.
-- Wrote a four-table query for customer transaction and fraud-prediction data.
+- Added parameterized read queries for pending transactions and prediction history.
+- Added Express health, pending-transaction, and prediction-history endpoints.
+- Added `POST /api/transactions` with strict request validation and a parameterized PostgreSQL insert.
+- Kept transaction status backend-owned and initialized new transactions as `PENDING`.
+- Added 55 Jest/Supertest cases covering success, validation, empty results, 404s, and database failures.
+- Verified the transaction-creation endpoint against local PostgreSQL.
 
 ## Planned Architecture
 
@@ -77,10 +82,19 @@ Run the seed script against an empty database. It uses a fixed sample username, 
 
 ```text
 database/
-  schema.sql       PostgreSQL tables, constraints, and indexes
-  queries.js       Sample data insertion script
-  validation.sql   Intentional constraint failures and join practice
-  pool.js          PostgreSQL connection pool
+  schema.sql         PostgreSQL tables, constraints, and indexes
+  queries.js         Sample data insertion script
+  validation.sql     Intentional constraint failures and join practice
+  pool.js            PostgreSQL connection pool
+  readQueries.js     Parameterized application reads
+  writeQueries.js    Parameterized transaction creation
+src/
+  app.js             Express configuration
+  server.js          Network startup
+  controllers/       HTTP validation and responses
+  routes/            API route definitions
+  middleware/        JSON 404 and 500 handlers
+  test/              Jest/Supertest integration tests
 ```
 
 ## V1 Stack

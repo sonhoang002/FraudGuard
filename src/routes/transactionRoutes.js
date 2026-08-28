@@ -8,4 +8,6 @@ transactionRoute.get(
   "/:transactionId/predictions",
   transactionController.getTransactionPredictionHistory,
 );
+
+transactionRoute.post("/", transactionController.createTransaction);
 module.exports = transactionRoute;
