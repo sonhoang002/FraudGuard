@@ -62,7 +62,23 @@ async function getTransactionPredictionHistory(transactionId) {
   return result.rows;
 }
 
+async function getTransactionStatusById(transactionId) {
+  const result = await pool.query(
+    `
+    SELECT
+        id, transaction_status
+    FROM
+        transactionss
+    WHERE
+        id = $1`,
+    [transactionId],
+  );
+
+  return result.rows[0];
+}
+
 module.exports = {
   getPendingTransactionsByUsername,
   getTransactionPredictionHistory,
+  getTransactionStatusById,
 };

@@ -419,3 +419,179 @@ test("POST /api/transactions returns 500 when the database is unavailable", asyn
   expect(writeDb.createTransaction).toHaveBeenCalledTimes(1);
   expect(writeDb.createTransaction).toHaveBeenCalledWith(validRequestObject);
 });
+
+test("PATCH /api/transactions/17/status returns 400 when transaction_status is missing", async () => {
+  const requestObject = {};
+  const expectedReturnBody = { error: "transaction_status is required" };
+  const expectedReturnCode = 400;
+
+  const response = await request(app)
+    .patch("/api/transactions/17/status")
+    .send(requestObject);
+
+  expect(response.statusCode).toBe(expectedReturnCode);
+  expect(response.body).toStrictEqual(expectedReturnBody);
+});
+
+test.each(["abc", 1.5, 0, -1])(
+  "PATCH status returns 400 when transactionId %s is invalid",
+  async (invalidId) => {
+    const requestObject = { transaction_status: "COMPLETED" };
+    const expectedReturnBody = {
+      error: "transactionId must be a positive integer",
+    };
+    const expectedReturnCode = 400;
+
+    const response = await request(app)
+      .patch(`/api/transactions/${invalidId}/status`)
+      .send(requestObject);
+
+    expect(response.statusCode).toBe(expectedReturnCode);
+    expect(response.body).toStrictEqual(expectedReturnBody);
+  },
+);
+
+test.each(["PENDING", "REFUNDED", "APPROVE", "completed", "", 123, null])(
+  "PATCH status returns 400 when transaction status %s is invalid",
+  async (transactionStatus) => {
+    const requestObject = { transaction_status: transactionStatus };
+    const expectedReturnBody = {
+      error: "transaction_status must be COMPLETED or DECLINED",
+    };
+    const expectedReturnCode = 400;
+
+    const response = await request(app)
+      .patch(`/api/transactions/17/status`)
+      .send(requestObject);
+
+    expect(response.statusCode).toBe(expectedReturnCode);
+    expect(response.body).toStrictEqual(expectedReturnBody);
+  },
+);
+
+test("PATCH status returns 200 when the transaction ID and target status are valid", async () => {
+  const fakeUpdatedTransaction = {
+    id: 17,
+    account_id: 2,
+    amount: "100.00",
+    device: "Phone",
+    merchant: "Example",
+    transaction_status: "COMPLETED",
+    currency: "USD",
+    occurred_at: "2026-08-26T12:00:00.000Z",
+    created_at: "2026-08-26T12:00:10.000Z",
+  };
+  const requestObject = { transaction_status: "COMPLETED" };
+  const expectedReturnCode = 200;
+
+  writeDb.updatePendingTransactionStatus.mockResolvedValue(
+    fakeUpdatedTransaction,
+  );
+  const response = await request(app)
+    .patch("/api/transactions/17/status")
+    .send(requestObject);
+
+  expect(response.statusCode).toBe(expectedReturnCode);
+  expect(response.body).toStrictEqual(fakeUpdatedTransaction);
+  expect(writeDb.updatePendingTransactionStatus).toHaveBeenCalledTimes(1);
+  expect(writeDb.updatePendingTransactionStatus).toHaveBeenCalledWith(
+    17,
+    "COMPLETED",
+  );
+  expect(db.getTransactionStatusById).not.toHaveBeenCalled();
+});
+
+test("PATCH return 404 when transaction do not exist", async () => {
+  const expectedReturnCode = 404;
+  const expectedReturnBody = { error: "Transaction not found" };
+  const requestObject = { transaction_status: "COMPLETED" };
+
+  writeDb.updatePendingTransactionStatus.mockResolvedValue(undefined);
+  db.getTransactionStatusById.mockResolvedValue(undefined);
+
+  const response = await request(app)
+    .patch("/api/transactions/99999/status")
+    .send(requestObject);
+
+  expect(response.statusCode).toBe(expectedReturnCode);
+  expect(response.body).toStrictEqual(expectedReturnBody);
+  expect(writeDb.updatePendingTransactionStatus).toHaveBeenCalledWith(
+    99999,
+    "COMPLETED",
+  );
+  expect(db.getTransactionStatusById).toHaveBeenCalledWith(99999);
+});
+
+test("PATCH status returns 409 when the transaction is no longer PENDING", async () => {
+  const expectedReturnCode = 409;
+  const expectedReturnBody = {
+    error: "Transaction is not pending",
+    current_status: "COMPLETED",
+  };
+  const requestObject = { transaction_status: "DECLINED" };
+
+  writeDb.updatePendingTransactionStatus.mockResolvedValue(undefined);
+  db.getTransactionStatusById.mockResolvedValue({
+    id: 17,
+    transaction_status: "COMPLETED",
+  });
+
+  const response = await request(app)
+    .patch("/api/transactions/17/status")
+    .send(requestObject);
+
+  expect(response.statusCode).toBe(expectedReturnCode);
+  expect(response.body).toStrictEqual(expectedReturnBody);
+  expect(writeDb.updatePendingTransactionStatus).toHaveBeenCalledWith(
+    17,
+    "DECLINED",
+  );
+  expect(db.getTransactionStatusById).toHaveBeenCalledWith(17);
+});
+
+test("PATCH returns 500 when the status update query fails", async () => {
+  const expectedReturnCode = 500;
+  const expectedReturnBody = { error: "Internal server error" };
+  const requestObject = { transaction_status: "COMPLETED" };
+
+  writeDb.updatePendingTransactionStatus.mockRejectedValue(
+    new Error("Database unavailable"),
+  );
+
+  const response = await request(app)
+    .patch("/api/transactions/17/status")
+    .send(requestObject);
+
+  expect(response.statusCode).toBe(expectedReturnCode);
+  expect(response.body).toStrictEqual(expectedReturnBody);
+  expect(response.body.error).not.toContain("Database unavailable");
+  expect(writeDb.updatePendingTransactionStatus).toHaveBeenCalledWith(
+    17,
+    "COMPLETED",
+  );
+  expect(db.getTransactionStatusById).not.toHaveBeenCalled();
+});
+
+test("PATCH returns 500 when the status lookup query fails", async () => {
+  const expectedReturnCode = 500;
+  const expectedReturnBody = { error: "Internal server error" };
+  const requestObject = { transaction_status: "COMPLETED" };
+
+  writeDb.updatePendingTransactionStatus.mockResolvedValue(undefined);
+  db.getTransactionStatusById.mockRejectedValue(
+    new Error("Database unavailable"),
+  );
+
+  const response = await request(app)
+    .patch("/api/transactions/17/status")
+    .send(requestObject);
+
+  expect(response.statusCode).toBe(expectedReturnCode);
+  expect(response.body).toStrictEqual(expectedReturnBody);
+  expect(response.body.error).not.toContain("Database unavailable");
+  expect(writeDb.updatePendingTransactionStatus).toHaveBeenCalledWith(
+    17,
+    "COMPLETED",
+  );
+  expect(db.getTransactionStatusById).toHaveBeenCalledWith(17);
+});

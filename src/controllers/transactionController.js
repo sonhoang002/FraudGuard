@@ -5,6 +5,10 @@ const {
 
 const { createTransaction } = require("../../database/writeQueries");
 
+const {
+  resolvePendingTransactionStatus,
+} = require("../services/transactionService");
+
 function isInvalidOptionalText(value) {
   return (
     value !== undefined &&
@@ -131,6 +135,53 @@ exports.createTransaction = async (req, res, next) => {
     const createdTransaction = await createTransaction(data);
 
     return res.status(201).json(createdTransaction);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.statusUpdateHandler = async (req, res, next) => {
+  const { transaction_status } = req.body || {};
+  const transactionId = Number(req.params.transactionId);
+
+  if (!Number.isInteger(transactionId) || transactionId <= 0) {
+    return res
+      .status(400)
+      .json({ error: "transactionId must be a positive integer" });
+  }
+
+  if (transaction_status === undefined) {
+    return res.status(400).json({ error: "transaction_status is required" });
+  }
+
+  if (!["COMPLETED", "DECLINED"].includes(transaction_status)) {
+    return res
+      .status(400)
+      .json({ error: "transaction_status must be COMPLETED or DECLINED" });
+  }
+
+  try {
+    const resolution = await resolvePendingTransactionStatus(
+      transactionId,
+      transaction_status,
+    );
+
+    if (resolution.outcome === "NOT_FOUND") {
+      return res.status(404).json({ error: "Transaction not found" });
+    }
+
+    if (resolution.outcome === "CONFLICT") {
+      return res.status(409).json({
+        error: "Transaction is not pending",
+        current_status: resolution.currentStatus,
+      });
+    }
+
+    if (resolution.outcome === "UPDATED") {
+      return res.status(200).json(resolution.transaction);
+    }
+
+    throw new Error("Unexpected transaction resolution outcome");
   } catch (error) {
     next(error);
   }

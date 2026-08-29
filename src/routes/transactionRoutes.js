@@ -10,4 +10,9 @@ transactionRoute.get(
 );
 
 transactionRoute.post("/", transactionController.createTransaction);
+
+transactionRoute.patch(
+  "/:transactionId/status",
+  transactionController.statusUpdateHandler,
+);
 module.exports = transactionRoute;

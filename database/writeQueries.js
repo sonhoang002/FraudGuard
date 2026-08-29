@@ -19,4 +19,26 @@ async function createTransaction(data) {
   return result.rows[0];
 }
 
-module.exports = { createTransaction };
+async function updatePendingTransactionStatus(
+  transactionId,
+  transactionStatus,
+) {
+  const result = await pool.query(
+    `
+    UPDATE
+      transactions
+    SET
+      transaction_status = $1
+    WHERE
+      id = $2
+    AND
+      transaction_status = 'PENDING'
+    RETURNING
+      id, account_id, amount, device, merchant, transaction_status, currency, occurred_at, created_at`,
+    [transactionStatus, transactionId],
+  );
+
+  return result.rows[0];
+}
+
+module.exports = { createTransaction, updatePendingTransactionStatus };
