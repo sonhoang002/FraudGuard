@@ -5,6 +5,10 @@ const transactionController = require("../controllers/transactionController");
 
 transactionRoute.get("/pending", transactionController.getPendingTransactions);
 transactionRoute.get(
+  "/:transactionId",
+  transactionController.getTransactionById,
+);
+transactionRoute.get(
   "/:transactionId/predictions",
   transactionController.getTransactionPredictionHistory,
 );

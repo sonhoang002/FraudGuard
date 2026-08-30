@@ -1,5 +1,5 @@
 const {
-  getPendingTransactionsByUsername,
+  getPendingTransactions,
   getTransactionPredictionHistory,
 } = require("../../database/readQueries");
 
@@ -7,6 +7,7 @@ const { createTransaction } = require("../../database/writeQueries");
 
 const {
   resolvePendingTransactionStatus,
+  getTransactionDetails,
 } = require("../services/transactionService");
 
 function isInvalidOptionalText(value) {
@@ -20,13 +21,8 @@ function isInvalidOptionalText(value) {
 exports.getPendingTransactions = async (req, res, next) => {
   const username = req.query.username;
 
-  if (!username) {
-    return res.status(400).json({ error: "username is required" });
-  }
-
   try {
-    const pendingTransactions =
-      await getPendingTransactionsByUsername(username);
+    const pendingTransactions = await getPendingTransactions(username);
     return res.status(200).json(pendingTransactions);
   } catch (error) {
     next(error);
@@ -48,6 +44,32 @@ exports.getTransactionPredictionHistory = async (req, res, next) => {
     return res.status(200).json(predictionHistory);
   } catch (err) {
     next(err);
+  }
+};
+
+exports.getTransactionById = async (req, res, next) => {
+  const transactionId = Number(req.params.transactionId);
+
+  if (!Number.isInteger(transactionId) || transactionId <= 0) {
+    return res
+      .status(400)
+      .json({ error: "transactionId must be a positive integer" });
+  }
+
+  try {
+    const response = await getTransactionDetails(transactionId);
+    const { outcome, ...transactionDetails } = response;
+
+    if (outcome === "NOT_FOUND") {
+      return res.status(404).json({ error: "Transaction not found" });
+    }
+
+    if (outcome === "FOUND") {
+      return res.status(200).json(transactionDetails);
+    }
+    throw new Error("Unexpected transaction detail outcome");
+  } catch (error) {
+    next(error);
   }
 };
 

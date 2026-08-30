@@ -1,4 +1,8 @@
-const { getTransactionStatusById } = require("../../database/readQueries");
+const {
+  getTransactionStatusById,
+  getTransactionById,
+  getTransactionPredictionHistory,
+} = require("../../database/readQueries");
 
 const {
   updatePendingTransactionStatus,
@@ -29,4 +33,38 @@ async function resolvePendingTransactionStatus(
   };
 }
 
-module.exports = { resolvePendingTransactionStatus };
+async function getTransactionDetails(transactionId) {
+  const existingTransaction = await getTransactionById(transactionId);
+
+  if (existingTransaction === undefined) {
+    return { outcome: "NOT_FOUND" };
+  }
+
+  const predictionHistory =
+    await getTransactionPredictionHistory(transactionId);
+
+  const cleanedPredictionHistory = predictionHistory.map((prediction) => {
+    const {
+      prediction_id,
+      model_version,
+      score_probability,
+      decision,
+      prediction_created_at,
+    } = prediction;
+    return {
+      prediction_id,
+      model_version,
+      score_probability,
+      decision,
+      prediction_created_at,
+    };
+  });
+
+  return {
+    outcome: "FOUND",
+    ...existingTransaction,
+    predictions: cleanedPredictionHistory,
+  };
+}
+
+module.exports = { resolvePendingTransactionStatus, getTransactionDetails };

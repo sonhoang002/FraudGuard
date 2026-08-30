@@ -1,19 +1,17 @@
 const pool = require("./pool");
 
 const {
-  getPendingTransactionsByUsername,
+  getPendingTransactions,
   getTransactionPredictionHistory,
 } = require("./readQueries");
 
 async function run() {
   try {
-    const pendingTransactions =
-      await getPendingTransactionsByUsername("Customer1");
+    const pendingTransactions = await getPendingTransactions("Customer1");
     const predictionHistory = await getTransactionPredictionHistory(4);
 
-    const missingCustomerResults =
-      await getPendingTransactionsByUsername("Customer5");
-    const injectionAttemptResults = await getPendingTransactionsByUsername(
+    const missingCustomerResults = await getPendingTransactions("Customer5");
+    const injectionAttemptResults = await getPendingTransactions(
       "Customer1' OR '1' = '1",
     );
     const missingTransactionHistory =

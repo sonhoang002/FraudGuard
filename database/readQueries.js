@@ -1,9 +1,8 @@
 const pool = require("./pool");
 
-async function getPendingTransactionsByUsername(username) {
-  const result = await pool.query(
-    `
-        SELECT 
+async function getPendingTransactions(username) {
+  let query = `
+        SELECT
             t.id AS transaction_id,
             u.username,
             t.amount,
@@ -22,13 +21,20 @@ async function getPendingTransactionsByUsername(username) {
         ON
             a.id = t.account_id
         WHERE
-            u.username = $1
-        AND
             t.transaction_status = 'PENDING'
-        ORDER BY
-            t.occurred_at DESC`,
-    [username],
-  );
+        `;
+
+  const values = [];
+
+  if (username !== undefined) {
+    query += ` AND u.username = $1`;
+    values.push(username);
+  }
+
+  query += ` ORDER BY
+             t.occurred_at DESC`;
+
+  const result = await pool.query(query, values);
 
   return result.rows;
 }
@@ -68,7 +74,7 @@ async function getTransactionStatusById(transactionId) {
     SELECT
         id, transaction_status
     FROM
-        transactionss
+        transactions
     WHERE
         id = $1`,
     [transactionId],
@@ -77,8 +83,41 @@ async function getTransactionStatusById(transactionId) {
   return result.rows[0];
 }
 
+async function getTransactionById(transactionId) {
+  const result = await pool.query(
+    `
+        SELECT
+            t.id AS transaction_id,
+            t.account_id,
+            u.username,
+            t.amount,
+            t.device,
+            t.merchant,
+            t.currency,
+            t.transaction_status,
+            t.occurred_at,
+            t.created_at
+        FROM
+            transactions AS t
+        JOIN
+            accounts AS a
+        ON
+            t.account_id = a.id
+        JOIN
+            users AS u
+        ON
+            a.user_id = u.id
+        WHERE
+            t.id = $1`,
+    [transactionId],
+  );
+
+  return result.rows[0];
+}
+
 module.exports = {
-  getPendingTransactionsByUsername,
+  getPendingTransactions,
   getTransactionPredictionHistory,
   getTransactionStatusById,
+  getTransactionById,
 };

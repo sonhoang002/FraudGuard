@@ -31,16 +31,6 @@ test("GET /api/unknown returns status 404 and a route not found error", async ()
   expect(response.body).toStrictEqual(expectedReturnBody);
 });
 
-test("GET /api/transactions/pending returns 400 when username is missing", async () => {
-  const expectedReturnCode = 400;
-  const expectedReturnBody = { error: "username is required" };
-
-  const response = await request(app).get("/api/transactions/pending");
-
-  expect(response.statusCode).toBe(expectedReturnCode);
-  expect(response.body).toStrictEqual(expectedReturnBody);
-});
-
 test.each(["abc", 1.5, 0, -1])(
   "GET predictions returns 400 when transactionId %s",
   async (invalidId) => {
@@ -71,9 +61,7 @@ test("GET /api/transactions/pending?username=Customer1 returns 200 with pending 
     },
   ];
 
-  db.getPendingTransactionsByUsername.mockResolvedValue(
-    fakePendingTransactions,
-  );
+  db.getPendingTransactions.mockResolvedValue(fakePendingTransactions);
 
   const expectedReturnCode = 200;
 
@@ -83,7 +71,7 @@ test("GET /api/transactions/pending?username=Customer1 returns 200 with pending 
 
   expect(response.statusCode).toBe(expectedReturnCode);
   expect(response.body).toStrictEqual(fakePendingTransactions);
-  expect(db.getPendingTransactionsByUsername).toHaveBeenCalledWith("Customer1");
+  expect(db.getPendingTransactions).toHaveBeenCalledWith("Customer1");
 });
 
 test("GET pending transactions returns 500 when the database query fails", async () => {
@@ -91,7 +79,7 @@ test("GET pending transactions returns 500 when the database query fails", async
   const expectedReturnBody = { error: "Internal server error" };
   const expectedReturnCode = 500;
 
-  db.getPendingTransactionsByUsername.mockRejectedValue(databaseError);
+  db.getPendingTransactions.mockRejectedValue(databaseError);
   const response = await request(app).get(
     "/api/transactions/pending?username=Customer1",
   );
@@ -147,6 +135,183 @@ test("GET prediction history returns 500 when the database query fails", async (
   expect(response.statusCode).toBe(expectedReturnCode);
   expect(response.body).toStrictEqual(expectedReturnBody);
   expect(db.getTransactionPredictionHistory).toHaveBeenCalledWith(4);
+});
+
+test("GET /api/transactions/pending returns all pending transactions when username is omitted", async () => {
+  const expectedReturnCode = 200;
+  const expectedReturnBody = [
+    {
+      transaction_id: 1,
+      username: "Customer1",
+      amount: "100.00",
+      currency: "USD",
+      merchant: "Example1",
+      transaction_status: "PENDING",
+      occurred_at: "2026-08-26T12:00:00.000Z",
+    },
+    {
+      transaction_id: 2,
+      username: "Customer2",
+      amount: "102.00",
+      currency: "CAD",
+      merchant: "Example2",
+      transaction_status: "PENDING",
+      occurred_at: "2026-08-26T12:00:10.000Z",
+    },
+  ];
+  db.getPendingTransactions.mockResolvedValue(expectedReturnBody);
+
+  const response = await request(app).get("/api/transactions/pending");
+
+  expect(response.statusCode).toBe(expectedReturnCode);
+  expect(response.body).toStrictEqual(expectedReturnBody);
+  expect(db.getPendingTransactions).toHaveBeenCalledTimes(1);
+  expect(db.getPendingTransactions).toHaveBeenCalledWith(undefined);
+});
+
+test.each(["abc", "1.5", "0", "-1"])(
+  "GET /api/transactions/:transactionId returns 400 when transactionId is %s",
+  async (transactionId) => {
+    const expectedReturnCode = 400;
+    const expectedReturnBody = {
+      error: "transactionId must be a positive integer",
+    };
+
+    const response = await request(app).get(
+      `/api/transactions/${transactionId}`,
+    );
+
+    expect(response.statusCode).toBe(expectedReturnCode);
+    expect(response.body).toStrictEqual(expectedReturnBody);
+  },
+);
+
+test("GET /api/transactions/17 returns 200 with empty predictions", async () => {
+  const expectedReturnCode = 200;
+  const expectedTransaction = {
+    transaction_id: 17,
+    account_id: 1,
+    username: "Customer1",
+    amount: "100.00",
+    device: "Phone",
+    merchant: "Example1",
+    currency: "USD",
+    transaction_status: "PENDING",
+    occurred_at: "2026-08-26T12:00:00.000Z",
+    created_at: "2026-08-26T12:10:00.000Z",
+  };
+  const expectedReturnBody = { ...expectedTransaction, predictions: [] };
+
+  db.getTransactionById.mockResolvedValue(expectedTransaction);
+  db.getTransactionPredictionHistory.mockResolvedValue([]);
+  const response = await request(app).get("/api/transactions/17");
+
+  expect(response.statusCode).toBe(expectedReturnCode);
+  expect(response.body).toStrictEqual(expectedReturnBody);
+  expect(db.getTransactionById).toHaveBeenCalledWith(17);
+  expect(db.getTransactionPredictionHistory).toHaveBeenCalledWith(17);
+});
+
+test("GET /api/transactions/99999 transaction not found", async () => {
+  const expectedReturnCode = 404;
+  const expectedReturnBody = { error: "Transaction not found" };
+
+  db.getTransactionById.mockResolvedValue(undefined);
+  const response = await request(app).get("/api/transactions/99999");
+
+  expect(response.statusCode).toBe(expectedReturnCode);
+  expect(response.body).toStrictEqual(expectedReturnBody);
+  expect(db.getTransactionById).toHaveBeenCalledWith(99999);
+  expect(db.getTransactionPredictionHistory).not.toHaveBeenCalled();
+});
+
+test("GET /api/transactions/17 returns nested predictions without repeated transaction fields", async () => {
+  const expectedReturnCode = 200;
+  const mockTransaction = {
+    transaction_id: 17,
+    account_id: 1,
+    username: "Customer1",
+    amount: "100.00",
+    device: "Phone",
+    merchant: "Example1",
+    currency: "USD",
+    transaction_status: "PENDING",
+    occurred_at: "2026-08-26T12:00:00.000Z",
+    created_at: "2026-08-26T12:10:00.000Z",
+  };
+  const mockPrediction = {
+    transaction_id: 17,
+    amount: "100.00",
+    transaction_status: "PENDING",
+    prediction_id: 5,
+    model_version: "v0.2",
+    score_probability: "0.75",
+    decision: "REVIEW",
+    prediction_created_at: "2026-08-26T12:00:00.000Z",
+  };
+  const expectedPrediction = {
+    prediction_id: 5,
+    model_version: "v0.2",
+    score_probability: "0.75",
+    decision: "REVIEW",
+    prediction_created_at: "2026-08-26T12:00:00.000Z",
+  };
+  const expectedReturnBody = {
+    ...mockTransaction,
+    predictions: [expectedPrediction],
+  };
+
+  db.getTransactionById.mockResolvedValue(mockTransaction);
+  db.getTransactionPredictionHistory.mockResolvedValue([mockPrediction]);
+
+  const response = await request(app).get("/api/transactions/17");
+
+  expect(response.statusCode).toBe(expectedReturnCode);
+  expect(response.body).toStrictEqual(expectedReturnBody);
+  expect(db.getTransactionById).toHaveBeenCalledWith(17);
+  expect(db.getTransactionPredictionHistory).toHaveBeenCalledWith(17);
+});
+
+test("getTransactionById rejects and getTransactionPredictionHistory never called", async () => {
+  const expectedReturnCode = 500;
+  const expectedReturnBody = { error: "Internal server error" };
+  db.getTransactionById.mockRejectedValue(new Error("Database unavailable"));
+
+  const response = await request(app).get("/api/transactions/17");
+
+  expect(db.getTransactionById).toHaveBeenCalledWith(17);
+  expect(db.getTransactionById).toHaveBeenCalledTimes(1);
+  expect(response.statusCode).toBe(expectedReturnCode);
+  expect(response.body).toStrictEqual(expectedReturnBody);
+  expect(db.getTransactionPredictionHistory).not.toHaveBeenCalled();
+});
+
+test("getTransactionById returns a transaction but getTransactionPredictionHistory rejects", async () => {
+  const expectedReturnCode = 500;
+  const expectedReturnBody = { error: "Internal server error" };
+  const mockTransaction = {
+    transaction_id: 17,
+    account_id: 1,
+    username: "Customer1",
+    amount: "100.00",
+    device: "Phone",
+    merchant: "Example1",
+    currency: "USD",
+    transaction_status: "PENDING",
+    occurred_at: "2026-08-26T12:00:00.000Z",
+    created_at: "2026-08-26T12:10:00.000Z",
+  };
+
+  db.getTransactionById.mockResolvedValue(mockTransaction);
+  db.getTransactionPredictionHistory.mockRejectedValue(
+    new Error("Database unavailable"),
+  );
+  const response = await request(app).get("/api/transactions/17");
+
+  expect(response.statusCode).toBe(expectedReturnCode);
+  expect(response.body).toStrictEqual(expectedReturnBody);
+  expect(db.getTransactionPredictionHistory).toHaveBeenCalledWith(17);
+  expect(db.getTransactionById).toHaveBeenCalledWith(17);
 });
 
 test("POST failing because of given transaction status", async () => {

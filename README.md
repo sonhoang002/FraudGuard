@@ -4,19 +4,32 @@ FraudGuard is a learning-first portfolio project for a real-time fraud detection
 
 ## Current Progress
 
-Days 1-7 are complete:
+Days 1-9 are complete:
 
 - Designed a PostgreSQL schema for users, accounts, transactions, and fraud predictions.
 - Added foreign keys, indexes, and database constraints for data integrity.
 - Kept immutable transaction events separate from historical fraud predictions.
 - Inserted sample data inside a database transaction.
 - Validated unique, check, and foreign-key constraints with intentionally invalid data.
-- Added parameterized read queries for pending transactions and prediction history.
-- Added Express health, pending-transaction, and prediction-history endpoints.
+- Added parameterized read queries for pending transactions, transaction details, and prediction history.
+- Added Express health, pending-review queue, transaction-detail, and prediction-history endpoints.
 - Added `POST /api/transactions` with strict request validation and a parameterized PostgreSQL insert.
 - Kept transaction status backend-owned and initialized new transactions as `PENDING`.
-- Added 55 Jest/Supertest cases covering success, validation, empty results, 404s, and database failures.
-- Verified the transaction-creation endpoint against local PostgreSQL.
+- Added an atomic manual-review status workflow for resolving pending transactions to `COMPLETED` or `DECLINED`.
+- Added 84 Jest/Supertest and query-layer cases covering success, validation, empty results, state conflicts, 404s, parameterization, and database failures.
+- Verified transaction creation, manual review, pending reads, and transaction details against local PostgreSQL.
+
+## Current API
+
+- `GET /health` checks whether the Express application is responding.
+- `GET /api/transactions/pending` returns the all-customer pending-review queue.
+- `GET /api/transactions/pending?username=Customer1` optionally filters that queue by customer.
+- `GET /api/transactions/:transactionId` returns one transaction with nested prediction history.
+- `GET /api/transactions/:transactionId/predictions` returns the standalone prediction-history collection.
+- `POST /api/transactions` creates a transaction with backend-owned initial `PENDING` status.
+- `PATCH /api/transactions/:transactionId/status` resolves a pending transaction to `COMPLETED` or `DECLINED`.
+
+The transaction-detail endpoint returns `200` with `predictions: []` when a transaction exists without predictions, `404` when the transaction does not exist, and `400` for an invalid ID. Unexpected failures use the generic `500` response without exposing database details.
 
 ## Planned Architecture
 
@@ -87,14 +100,15 @@ database/
   validation.sql     Intentional constraint failures and join practice
   pool.js            PostgreSQL connection pool
   readQueries.js     Parameterized application reads
-  writeQueries.js    Parameterized transaction creation
+  writeQueries.js    Parameterized transaction creation and status updates
 src/
   app.js             Express configuration
   server.js          Network startup
   controllers/       HTTP validation and responses
   routes/            API route definitions
+  services/          Multi-query workflows and business outcomes
   middleware/        JSON 404 and 500 handlers
-  test/              Jest/Supertest integration tests
+  test/              Jest/Supertest integration and query-layer tests
 ```
 
 ## V1 Stack
