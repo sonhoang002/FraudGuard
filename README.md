@@ -4,7 +4,7 @@ FraudGuard is a learning-first portfolio project for a real-time fraud detection
 
 ## Current Progress
 
-Days 1-9 are complete:
+Days 1-10 are complete:
 
 - Designed a PostgreSQL schema for users, accounts, transactions, and fraud predictions.
 - Added foreign keys, indexes, and database constraints for data integrity.
@@ -18,6 +18,9 @@ Days 1-9 are complete:
 - Added an atomic manual-review status workflow for resolving pending transactions to `COMPLETED` or `DECLINED`.
 - Added 84 Jest/Supertest and query-layer cases covering success, validation, empty results, state conflicts, 404s, parameterization, and database failures.
 - Verified transaction creation, manual review, pending reads, and transaction details against local PostgreSQL.
+- Added a React/Vite analyst dashboard that fetches the live pending-review queue through a development proxy.
+- Added loading, empty, error, and populated states with request cancellation during component cleanup.
+- Added reusable queue components, localized currency/date display, and a responsive accessible table layout.
 
 ## Current API
 
@@ -69,25 +72,48 @@ Prerequisites:
 - Node.js
 - PostgreSQL
 
-1. Install dependencies:
+1. Install the backend dependencies from the repository root:
 
    ```bash
    npm install
    ```
 
-2. Create a local PostgreSQL database named `fraudguard`.
+2. Install the frontend dependencies:
 
-3. Create a `.env` file from `.env.example` and set your local PostgreSQL password.
+   ```bash
+   cd frontend
+   npm install
+   cd ..
+   ```
 
-4. Run `database/schema.sql` against the `fraudguard` database using your preferred PostgreSQL client.
+3. Create a local PostgreSQL database named `fraudguard`.
 
-5. Insert the sample records:
+4. Create a `.env` file from `.env.example` and set your local PostgreSQL password.
+
+5. Run `database/schema.sql` against the `fraudguard` database using your preferred PostgreSQL client.
+
+6. Insert the sample records:
 
    ```bash
    npm run seed
    ```
 
 Run the seed script against an empty database. It uses a fixed sample username, so a second run will correctly fail the database's unique-username constraint.
+
+Start Express from the repository root:
+
+```bash
+npm run dev
+```
+
+In a second terminal, start Vite:
+
+```bash
+cd frontend
+npm run dev
+```
+
+During local development, Vite forwards relative `/api` requests to Express on port `3000`.
 
 `database/validation.sql` contains intentionally invalid statements for manually testing database constraints. Run them one at a time; each is expected to fail.
 
@@ -109,6 +135,11 @@ src/
   services/          Multi-query workflows and business outcomes
   middleware/        JSON 404 and 500 handlers
   test/              Jest/Supertest integration and query-layer tests
+frontend/
+  src/api/           Browser API functions
+  src/components/    Reusable queue presentation components
+  src/pages/         Page-level request state and composition
+  vite.config.js     React plugin and local API proxy configuration
 ```
 
 ## V1 Stack
