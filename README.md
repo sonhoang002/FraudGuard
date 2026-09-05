@@ -4,7 +4,7 @@ FraudGuard is a learning-first portfolio project for a real-time fraud detection
 
 ## Current Progress
 
-Days 1-10 are complete:
+Days 1-12 are complete:
 
 - Designed a PostgreSQL schema for users, accounts, transactions, and fraud predictions.
 - Added foreign keys, indexes, and database constraints for data integrity.
@@ -21,6 +21,8 @@ Days 1-10 are complete:
 - Added a React/Vite analyst dashboard that fetches the live pending-review queue through a development proxy.
 - Added loading, empty, error, and populated states with request cancellation during component cleanup.
 - Added reusable queue components, localized currency/date display, and a responsive accessible table layout.
+- Added transaction-detail, prediction-history, approval/decline, and stale-client conflict-reconciliation workflows.
+- Added 7 Vitest/React Testing Library behavior tests for queue states and the core analyst workflow.
 
 ## Current API
 

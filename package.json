@@ -9,6 +9,11 @@
     "dev": "node --watch src/server.js",
     "test": "jest"
   },
+  "jest": {
+    "roots": [
+      "<rootDir>/src"
+    ]
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
