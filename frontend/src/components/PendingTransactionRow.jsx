@@ -1,4 +1,4 @@
-function PendingTransactionRow({ transaction }) {
+function PendingTransactionRow({ onSelectTransaction, transaction }) {
   const formattedAmount = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: transaction.currency,
@@ -10,7 +10,15 @@ function PendingTransactionRow({ transaction }) {
 
   return (
     <tr>
-      <td className="transaction-id">#{transaction.transaction_id}</td>
+      <td className="transaction-id">
+        #{transaction.transaction_id}{" "}
+        <button
+          type="button"
+          onClick={() => onSelectTransaction(transaction.transaction_id)}
+        >
+          View Details
+        </button>
+      </td>
       <td>{transaction.username}</td>
       <td className="amount-cell">{formattedAmount}</td>
       <td>{transaction.currency}</td>

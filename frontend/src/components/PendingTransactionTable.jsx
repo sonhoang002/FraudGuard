@@ -1,6 +1,6 @@
 import PendingTransactionRow from "./PendingTransactionRow";
 
-function PendingTransactionTable({ transactions }) {
+function PendingTransactionTable({ onSelectTransaction, transactions }) {
   return (
     <div
       className="transaction-table-wrapper"
@@ -25,6 +25,7 @@ function PendingTransactionTable({ transactions }) {
             <PendingTransactionRow
               key={transaction.transaction_id}
               transaction={transaction}
+              onSelectTransaction={onSelectTransaction}
             />
           ))}
         </tbody>

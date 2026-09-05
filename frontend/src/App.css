@@ -43,6 +43,213 @@
   box-shadow: var(--shadow-card);
 }
 
+.transaction-summary {
+  margin-top: 24px;
+  padding: 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.transaction-summary h2 {
+  margin: 0 0 20px;
+  color: var(--color-heading);
+  font-size: 1.25rem;
+}
+
+.transaction-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.summary-field {
+  min-width: 0;
+  padding: 16px;
+  background: var(--color-table-heading);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.summary-field dt {
+  margin: 0 0 6px;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.summary-field dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-heading);
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.review-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+.review-button {
+  min-height: 42px;
+  padding: 10px 16px;
+  color: var(--color-surface);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
+}
+
+.review-button-approve {
+  background: #237a4b;
+}
+
+.review-button-approve:hover:not(:disabled) {
+  background: #19643c;
+}
+
+.review-button-decline {
+  background: #b42318;
+}
+
+.review-button-decline:hover:not(:disabled) {
+  background: #912018;
+}
+
+.review-button:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.review-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.transaction-summary + .request-state-message {
+  margin-top: 16px;
+}
+
+.prediction-history {
+  margin-top: 24px;
+  padding: 24px;
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+}
+
+.prediction-history h2 {
+  margin: 0 0 20px;
+  color: var(--color-heading);
+  font-size: 1.25rem;
+}
+
+.prediction-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.prediction-table-wrapper:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+.prediction-table {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.prediction-table th,
+.prediction-table td {
+  padding: 14px 16px;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.prediction-table th {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: var(--color-table-heading);
+}
+
+.prediction-table tbody tr {
+  transition: background-color 150ms ease;
+}
+
+.prediction-table tbody tr:hover {
+  background: var(--color-row-hover);
+}
+
+.prediction-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.prediction-id,
+.probability-cell {
+  color: var(--color-heading);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.decision-badge {
+  display: inline-flex;
+  padding: 4px 9px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+}
+
+.decision-review {
+  color: var(--color-pending-text);
+  background: var(--color-pending-bg);
+}
+
+.decision-approve {
+  color: #17663c;
+  background: #dcfce7;
+}
+
+.decision-block {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.prediction-empty {
+  margin: 0;
+  padding: 28px 20px;
+  color: var(--color-muted);
+  text-align: center;
+  background: var(--color-table-heading);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: 10px;
+}
+
 .section-heading {
   display: flex;
   align-items: baseline;
@@ -158,6 +365,25 @@
   }
 
   .queue-section {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .transaction-summary {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .review-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .review-button {
+    width: 100%;
+  }
+
+  .prediction-history {
     padding: 16px;
     border-radius: 12px;
   }
