@@ -17,3 +17,9 @@ npm-debug.log*
 
 # Editor-specific local configuration
 .vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/

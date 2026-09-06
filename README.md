@@ -4,7 +4,7 @@ FraudGuard is a learning-first portfolio project for a real-time fraud detection
 
 ## Current Progress
 
-Days 1-12 are complete:
+Days 1-13 are complete:
 
 - Designed a PostgreSQL schema for users, accounts, transactions, and fraud predictions.
 - Added foreign keys, indexes, and database constraints for data integrity.
@@ -23,6 +23,7 @@ Days 1-12 are complete:
 - Added reusable queue components, localized currency/date display, and a responsive accessible table layout.
 - Added transaction-detail, prediction-history, approval/decline, and stale-client conflict-reconciliation workflows.
 - Added 7 Vitest/React Testing Library behavior tests for queue states and the core analyst workflow.
+- Established the Python/pandas environment and completed a Ruff-verified transaction-analysis exercise covering DataFrames, missing values, filtering, aggregation, and vectorized features.
 
 ## Current API
 
@@ -73,6 +74,7 @@ Prerequisites:
 
 - Node.js
 - PostgreSQL
+- Python 3.14
 
 1. Install the backend dependencies from the repository root:
 
@@ -88,13 +90,23 @@ Prerequisites:
    cd ..
    ```
 
-3. Create a local PostgreSQL database named `fraudguard`.
+3. Create and activate the Python environment, then install its dependencies:
 
-4. Create a `.env` file from `.env.example` and set your local PostgreSQL password.
+   ```powershell
+   cd ml_service
+   python -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   python -m pip install -r requirements.txt
+   cd ..
+   ```
 
-5. Run `database/schema.sql` against the `fraudguard` database using your preferred PostgreSQL client.
+4. Create a local PostgreSQL database named `fraudguard`.
 
-6. Insert the sample records:
+5. Create a `.env` file from `.env.example` and set your local PostgreSQL password.
+
+6. Run `database/schema.sql` against the `fraudguard` database using your preferred PostgreSQL client.
+
+7. Insert the sample records:
 
    ```bash
    npm run seed
@@ -142,6 +154,9 @@ frontend/
   src/components/    Reusable queue presentation components
   src/pages/         Page-level request state and composition
   vite.config.js     React plugin and local API proxy configuration
+ml_service/
+  requirements.txt   Exact Python environment dependencies
+  transaction_practice.py  Day 13 pandas foundations exercise
 ```
 
 ## V1 Stack
@@ -161,7 +176,8 @@ Never commit `.env` files, database passwords, or real credentials. `.env.exampl
 
 - Days 1-4: Architecture and PostgreSQL
 - Days 5-9: Express backend
-- Days 10-14: React analyst dashboard
-- Days 15-24: Python, data analysis, and machine learning
+- Days 10-12: React analyst dashboard
+- Days 13-18: Python and pandas foundations
+- Days 19-24: Machine learning
 - Days 25-33: FastAPI inference, decision engine, and explainability
 - Days 34-40: Testing, Docker, deployment, and documentation
