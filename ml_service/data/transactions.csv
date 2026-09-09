@@ -1,0 +1,5 @@
+transaction_id,amount,merchant,device,is_fraud
+1,100.00,Apple,Phone,True
+2,120.00,Samsung,Computer,False
+3,140.00,Window,,False
+4,160.00,,Console,True

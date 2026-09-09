@@ -1,61 +1,45 @@
+from pathlib import Path
+
 import pandas as pd
 
-transactions = [
-    {
-        "transaction_id": 1,
-        "amount": 100.00,
-        "merchant": "Apple",
-        "device": "Phone",
-        "is_fraud": True,
-    },
-    {
-        "transaction_id": 2,
-        "amount": 120.00,
-        "merchant": "Samsung",
-        "device": "Computer",
-        "is_fraud": False,
-    },
-    {
-        "transaction_id": 3,
-        "amount": 140.00,
-        "merchant": "Window",
-        "device": None,
-        "is_fraud": False,
-    },
-    {
-        "transaction_id": 4,
-        "amount": 160.00,
-        "merchant": None,
-        "device": "Console",
-        "is_fraud": True,
-    },
-]
-
-
-def get_high_value_transactions(transactions, minimum_amount):
-    high_value_transactions = [
-        transaction
-        for transaction in transactions
-        if transaction["amount"] >= minimum_amount
-    ]
-
-    return high_value_transactions
+EXPECTED_COLUMNS = ["transaction_id", "amount", "merchant", "device", "is_fraud"]
+BASE_DIR = Path(__file__).resolve().parent
+CSV_PATH = BASE_DIR / "data" / "transactions.csv"
+REQUIRED_COLUMNS = ["transaction_id", "amount", "is_fraud"]
 
 
 def main():
-    result = get_high_value_transactions(transactions, 130)
-    print(result)
+    loaded_data = pd.read_csv(CSV_PATH)
+    loaded_columns = loaded_data.columns.tolist()
+    if loaded_columns != EXPECTED_COLUMNS:
+        raise ValueError(
+            f"CSV columns are incorrect. "
+            f"Expected {EXPECTED_COLUMNS}, but got {loaded_columns}."
+        )
 
-    transaction_df = pd.DataFrame(transactions)
-    cleaned_df = transaction_df.fillna({"merchant": "UNKNOWN", "device": "UNKNOWN"})
+    missing_by_column = loaded_data[REQUIRED_COLUMNS].isna().any()
 
-    print(transaction_df.isna().sum())
-    print(cleaned_df.isna().sum())
+    columns_with_missing_values = missing_by_column[missing_by_column].index.tolist()
 
-    cleaned_df["is_high_value"] = cleaned_df["amount"] >= 130
+    if columns_with_missing_values:
+        raise ValueError(
+            f"Required columns contain missing values: {columns_with_missing_values}"
+        )
 
-    print(cleaned_df[["transaction_id", "amount", "is_high_value"]])
-    print(cleaned_df["is_high_value"].sum())
+    if not pd.api.types.is_integer_dtype(loaded_data["transaction_id"]):
+        raise ValueError("transaction_id must contain integers.")
+
+    if not pd.api.types.is_numeric_dtype(loaded_data["amount"]):
+        raise ValueError("amount must contain numeric values.")
+
+    if not pd.api.types.is_bool_dtype(loaded_data["is_fraud"]):
+        raise ValueError("is_fraud must contain boolean.")
+
+    print(loaded_data)
+    print(loaded_data.shape)
+    print(loaded_data.columns.tolist())
+    print(loaded_data.dtypes)
+    print(loaded_data.isna().sum())
 
 
 if __name__ == "__main__":

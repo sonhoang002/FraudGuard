@@ -4,7 +4,7 @@ FraudGuard is a learning-first portfolio project for a real-time fraud detection
 
 ## Current Progress
 
-Days 1-13 are complete:
+Days 1-14 are complete:
 
 - Designed a PostgreSQL schema for users, accounts, transactions, and fraud predictions.
 - Added foreign keys, indexes, and database constraints for data integrity.
@@ -23,7 +23,7 @@ Days 1-13 are complete:
 - Added reusable queue components, localized currency/date display, and a responsive accessible table layout.
 - Added transaction-detail, prediction-history, approval/decline, and stale-client conflict-reconciliation workflows.
 - Added 7 Vitest/React Testing Library behavior tests for queue states and the core analyst workflow.
-- Established the Python/pandas environment and completed a Ruff-verified transaction-analysis exercise covering DataFrames, missing values, filtering, aggregation, and vectorized features.
+- Established the Python/pandas environment and completed a Ruff-verified transaction-analysis workflow covering DataFrames, reproducible CSV loading, schema validation, missing values, filtering, aggregation, and vectorized features.
 
 ## Current API
 
@@ -155,8 +155,10 @@ frontend/
   src/pages/         Page-level request state and composition
   vite.config.js     React plugin and local API proxy configuration
 ml_service/
+  data/
+    transactions.csv  Reproducible transaction-analysis input
   requirements.txt   Exact Python environment dependencies
-  transaction_practice.py  Day 13 pandas foundations exercise
+  transaction_practice.py  CSV loading, validation, and pandas analysis
 ```
 
 ## V1 Stack
