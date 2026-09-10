@@ -35,11 +35,16 @@ def main():
     if not pd.api.types.is_bool_dtype(loaded_data["is_fraud"]):
         raise ValueError("is_fraud must contain boolean.")
 
-    print(loaded_data)
-    print(loaded_data.shape)
-    print(loaded_data.columns.tolist())
-    print(loaded_data.dtypes)
+    cleaned_data = loaded_data.copy()
+    cleaned_data["merchant"] = cleaned_data["merchant"].fillna("UNKNOWN")
+    cleaned_data["device"] = cleaned_data["device"].fillna("UNKNOWN")
+    cleaned_data["is_high_value"] = cleaned_data["amount"] >= 130
+    high_value_count = cleaned_data["is_high_value"].sum()
+
     print(loaded_data.isna().sum())
+    print(cleaned_data.isna().sum())
+    print(cleaned_data[["transaction_id", "amount", "is_high_value"]])
+    print(f"The total number of high-value transactions: {high_value_count}")
 
 
 if __name__ == "__main__":
