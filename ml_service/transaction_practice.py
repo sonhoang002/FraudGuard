@@ -50,11 +50,13 @@ def main():
     validate_transactions(loaded_data)
     cleaned_data = prepare_transactions(loaded_data, 130)
 
-    print(loaded_data.isna().sum())
-    print(cleaned_data.isna().sum())
-    print(cleaned_data[["transaction_id", "amount", "is_high_value"]])
-    high_value_count = cleaned_data["is_high_value"].sum()
-    print(f"The total number of high-value transactions: {high_value_count}")
+    fraud_counts = cleaned_data["is_fraud"].value_counts()
+    overall_fraud_rate = cleaned_data["is_fraud"].mean()
+    fraud_rate_by_high_value = cleaned_data.groupby("is_high_value")["is_fraud"].mean()
+
+    print(fraud_counts)
+    print(overall_fraud_rate)
+    print(fraud_rate_by_high_value)
 
 
 if __name__ == "__main__":
