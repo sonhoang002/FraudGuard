@@ -1,6 +1,8 @@
 from pathlib import Path
 
 import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
 
 EXPECTED_COLUMNS = ["transaction_id", "amount", "merchant", "device", "is_fraud"]
 BASE_DIR = Path(__file__).resolve().parent
@@ -51,10 +53,29 @@ def main():
     cleaned_data = prepare_transactions(loaded_data, 130)
 
     feature_columns = ["amount", "merchant", "device", "is_high_value"]
+    numeric_feature_columns = ["amount", "is_high_value"]
+    categorical_feature_columns = ["merchant", "device"]
 
     X = cleaned_data[feature_columns]
     y = cleaned_data["is_fraud"]
 
+    encoder = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("numeric", "passthrough", numeric_feature_columns),
+            ("categorical", encoder, categorical_feature_columns),
+        ]
+    )
+
+    processed_X = preprocessor.fit_transform(X)
+
+    print(preprocessor.get_feature_names_out())
+    print(processed_X)
+    print(processed_X.shape)
+
+    print(X.dtypes)
+    print(X[numeric_feature_columns].dtypes)
+    print(X[categorical_feature_columns].dtypes)
     print(X)
     print(y)
     print(X.shape)
