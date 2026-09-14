@@ -23,3 +23,6 @@ __pycache__/
 *.py[cod]
 .venv/
 .pytest_cache/
+
+# Csv
+ml_service/data/FraudDetectionDataset.csv
