@@ -2,10 +2,20 @@ from pathlib import Path
 
 import pandas as pd
 from sklearn.compose import ColumnTransformer
+from sklearn.dummy import DummyClassifier
 from sklearn.impute import SimpleImputer
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    confusion_matrix,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+)
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_PATH = BASE_DIR / "data" / "FraudDetectionDataset.csv"
@@ -82,7 +92,12 @@ def main():
         "Location",
     ]
 
-    numeric_pipeline = Pipeline(steps=[("imputer", SimpleImputer(strategy="median"))])
+    numeric_pipeline = Pipeline(
+        steps=[
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scaler", StandardScaler()),
+        ]
+    )
 
     categorical_pipeline = Pipeline(
         steps=[
@@ -107,6 +122,28 @@ def main():
     feature_names = preprocessor.get_feature_names_out()
     print(feature_names)
     print(len(feature_names))
+
+    dummy_clf = DummyClassifier(strategy="most_frequent")
+    dummy_clf.fit(X_train_processed, y_train)
+    dummy_predictions = dummy_clf.predict(X_test_processed)
+    print(f"{accuracy_score(y_test, dummy_predictions) * 100:.2f}%")
+    print(f"{recall_score(y_test, dummy_predictions) * 100:.2f}%")
+    print(confusion_matrix(y_test, dummy_predictions))
+
+    model = LogisticRegression(max_iter=1000, class_weight="balanced")
+    model.fit(X_train_processed, y_train)
+    logistic_predictions = model.predict(X_test_processed)
+    print(f"{accuracy_score(y_test, logistic_predictions) * 100:.2f}%")
+    print(f"{precision_score(y_test, logistic_predictions) * 100:.2f}%")
+    print(f"{recall_score(y_test, logistic_predictions) * 100:.2f}%")
+    print(confusion_matrix(y_test, logistic_predictions))
+    fraud_probabilities = model.predict_proba(X_test_processed)[:, 1]
+    print(fraud_probabilities.min())
+    print(fraud_probabilities.mean())
+    print(fraud_probabilities.max())
+
+    print(roc_auc_score(y_test, fraud_probabilities))
+    print(average_precision_score(y_test, fraud_probabilities))
 
 
 if __name__ == "__main__":
