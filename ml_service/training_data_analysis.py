@@ -3,6 +3,7 @@ from pathlib import Path
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.dummy import DummyClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
@@ -13,7 +14,7 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold, cross_validate, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
@@ -144,6 +145,73 @@ def main():
 
     print(roc_auc_score(y_test, fraud_probabilities))
     print(average_precision_score(y_test, fraud_probabilities))
+
+    logistic_pipeline = Pipeline(
+        steps=[
+            ("preprocessor", preprocessor),
+            ("logistic", model),
+        ]
+    )
+
+    stratified_fold = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+
+    logistic_results = cross_validate(
+        estimator=logistic_pipeline,
+        X=X_train,
+        y=y_train,
+        cv=stratified_fold,
+        scoring=["roc_auc", "average_precision"],
+    )
+
+    print(f"ROC AUC fold scores: {logistic_results['test_roc_auc']}")
+    print(
+        f"Average precision fold scores: {logistic_results['test_average_precision']}"
+    )
+    print(f"Score time: {logistic_results['score_time'].mean()}")
+    print(f"Fit time: {logistic_results['fit_time'].mean()}")
+    print(f"Roc_auc: {logistic_results['test_roc_auc'].mean() * 100:.2f}%")
+    print(
+        f"Average precision: {logistic_results['test_average_precision'].mean() * 100:.2f}%"
+    )
+
+    rfc_model = RandomForestClassifier(
+        n_estimators=200,
+        max_depth=8,
+        min_samples_leaf=20,
+        class_weight="balanced",
+        random_state=42,
+        n_jobs=-1,
+    )
+
+    random_forest_pipeline = Pipeline(
+        steps=[("preprocessor", preprocessor), ("forest", rfc_model)]
+    )
+
+    rfc_result = cross_validate(
+        estimator=random_forest_pipeline,
+        X=X_train,
+        y=y_train,
+        cv=stratified_fold,
+        scoring=["roc_auc", "average_precision"],
+        return_train_score=True,
+    )
+
+    print(f"ROC AUC fold scores: {rfc_result['test_roc_auc']}")
+    print(f"Average precision fold scores: {rfc_result['test_average_precision']}")
+    print(f"Score time: {rfc_result['score_time'].mean()}")
+    print(f"Fit time: {rfc_result['fit_time'].mean()}")
+    print(f"Roc_auc: {rfc_result['test_roc_auc'].mean() * 100:.2f}%")
+    print(
+        f"Average precision: {rfc_result['test_average_precision'].mean() * 100:.2f}%"
+    )
+    print(f"ROC AUC train fold scores: {rfc_result['train_roc_auc']}")
+    print(
+        f"Average precision train fold scores: {rfc_result['train_average_precision']}"
+    )
+    print(f"Roc_auc: {rfc_result['train_roc_auc'].mean() * 100:.2f}%")
+    print(
+        f"Average precision: {rfc_result['train_average_precision'].mean() * 100:.2f}%"
+    )
 
 
 if __name__ == "__main__":
