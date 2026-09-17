@@ -26,3 +26,4 @@ __pycache__/
 
 # Csv
 ml_service/data/FraudDetectionDataset.csv
+ml_service/data/bs140513_032310.csv
