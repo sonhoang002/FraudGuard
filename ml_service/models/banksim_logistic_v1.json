@@ -1,0 +1,25 @@
+{
+  "model_version": "banksim_logistic_v1",
+  "model_type": "LogisticRegression",
+  "features": [
+    "amount",
+    "category"
+  ],
+  "training_steps": {
+    "start": 0,
+    "end": 143
+  },
+  "test_metrics": {
+    "roc_auc": 0.9920232400879924,
+    "average_precision": 0.7689418509458867,
+    "fraud_prevalence": 0.010809268948123016
+  },
+  "non_transport_test_metrics": {
+    "roc_auc": 0.9439196839284868,
+    "average_precision": 0.7689418509458869,
+    "fraud_prevalence": 0.0713436385255648
+  },
+  "data_source": "BankSim synthetic",
+  "python_version": "3.14.2",
+  "scikit_learn_version": "1.9.1"
+}

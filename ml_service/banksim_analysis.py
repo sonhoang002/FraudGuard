@@ -1,6 +1,11 @@
+import json
+import platform
 from pathlib import Path
 
+import joblib
+import numpy as np
 import pandas as pd
+import sklearn
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
@@ -10,6 +15,8 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 BASE_DIR = Path(__file__).resolve().parent
 FILE_PATH = BASE_DIR / "data" / "bs140513_032310.csv"
+MODEL_PATH = BASE_DIR / "models" / "banksim_logistic_v1.joblib"
+JSON_PATH = BASE_DIR / "models" / "banksim_logistic_v1.json"
 
 
 def main():
@@ -317,6 +324,35 @@ def main():
     )
 
     print(f"Non-transport Test Fraud Prevalence: {non_transport_fraud_prevalence:.4f}")
+
+    MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump(development_pipeline, MODEL_PATH)
+    loaded_model = joblib.load(MODEL_PATH)
+    loaded_model_probability = loaded_model.predict_proba(X_test_selected)[:, 1]
+    print(np.allclose(loaded_model_probability, test_probabilities))
+
+    JSON_PATH.parent.mkdir(parents=True, exist_ok=True)
+    banksim_logistic = {
+        "model_version": "banksim_logistic_v1",
+        "model_type": "LogisticRegression",
+        "features": ["amount", "category"],
+        "training_steps": {"start": 0, "end": 143},
+        "test_metrics": {
+            "roc_auc": test_roc_auc,
+            "average_precision": test_average_precision,
+            "fraud_prevalence": test_fraud_prevalence,
+        },
+        "non_transport_test_metrics": {
+            "roc_auc": non_transport_roc_auc,
+            "average_precision": non_transport_average_precision,
+            "fraud_prevalence": non_transport_fraud_prevalence,
+        },
+        "data_source": "BankSim synthetic",
+        "python_version": platform.python_version(),
+        "scikit_learn_version": sklearn.__version__,
+    }
+    with JSON_PATH.open("w", encoding="utf-8") as file:
+        json.dump(banksim_logistic, file, indent=2)
 
 
 if __name__ == "__main__":
