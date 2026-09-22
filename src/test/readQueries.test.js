@@ -15,6 +15,7 @@ test("getPendingTransactions queries all pending transactions when username is o
       amount: "100.00",
       currency: "USD",
       merchant: "Example1",
+      merchant_category: "es_transportation",
       transaction_status: "PENDING",
       occurred_at: "2026-08-26T12:00:00.000Z",
     },
@@ -24,6 +25,7 @@ test("getPendingTransactions queries all pending transactions when username is o
       amount: "102.00",
       currency: "CAD",
       merchant: "Example2",
+      merchant_category: "es_food",
       transaction_status: "PENDING",
       occurred_at: "2026-08-26T12:00:10.000Z",
     },
@@ -35,6 +37,7 @@ test("getPendingTransactions queries all pending transactions when username is o
 
   expect(values).toStrictEqual([]);
   expect(sql).toContain("t.transaction_status = 'PENDING'");
+  expect(sql).toContain("t.merchant_category");
   expect(sql).not.toContain("u.username = $1");
   expect(pool.query).toHaveBeenCalledTimes(1);
   expect(result).toStrictEqual(expectedRows);
@@ -48,6 +51,7 @@ test("getPendingTransactions filters pending transactions when username is provi
       amount: "100.00",
       currency: "USD",
       merchant: "Example1",
+      merchant_category: "es_transportation",
       transaction_status: "PENDING",
       occurred_at: "2026-08-26T12:00:00.000Z",
     },
@@ -59,6 +63,7 @@ test("getPendingTransactions filters pending transactions when username is provi
 
   expect(values).toStrictEqual(["Customer1"]);
   expect(sql).toContain("t.transaction_status = 'PENDING'");
+  expect(sql).toContain("t.merchant_category");
   expect(sql).toContain("u.username = $1");
   expect(sql).not.toContain("Customer1");
   expect(pool.query).toHaveBeenCalledTimes(1);
@@ -73,6 +78,7 @@ test("getTransactionById returns correct transaction when valid transactionId is
     amount: "100.00",
     device: "Phone",
     merchant: "Example1",
+    merchant_category: "es_transportation",
     currency: "USD",
     transaction_status: "PENDING",
     occurred_at: "2026-08-26T12:00:00.000Z",
@@ -84,6 +90,7 @@ test("getTransactionById returns correct transaction when valid transactionId is
 
   expect(result).toStrictEqual(expectedRow);
   expect(pool.query).toHaveBeenCalledTimes(1);
+  expect(sql).toContain("t.merchant_category");
   expect(sql).toContain("WHERE");
   expect(sql).toContain("t.id = $1");
   expect(values).toStrictEqual([17]);

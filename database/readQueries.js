@@ -8,6 +8,7 @@ async function getPendingTransactions(username) {
             t.amount,
             t.currency,
             t.merchant,
+            t.merchant_category,
             t.transaction_status,
             t.occurred_at
         FROM
@@ -93,6 +94,7 @@ async function getTransactionById(transactionId) {
             t.amount,
             t.device,
             t.merchant,
+            t.merchant_category,
             t.currency,
             t.transaction_status,
             t.occurred_at,

@@ -80,6 +80,7 @@ exports.createTransaction = async (req, res, next) => {
     currency,
     device,
     merchant,
+    merchant_category,
     occurred_at,
     transaction_status,
   } = req.body || {};
@@ -94,10 +95,12 @@ exports.createTransaction = async (req, res, next) => {
     account_id === undefined ||
     amount === undefined ||
     currency === undefined ||
-    occurred_at === undefined
+    occurred_at === undefined ||
+    merchant_category === undefined
   ) {
     return res.status(400).json({
-      error: "account_id, amount, currency, and occurred_at are required",
+      error:
+        "account_id, amount, currency, merchant_category, and occurred_at are required",
     });
   }
 
@@ -134,6 +137,15 @@ exports.createTransaction = async (req, res, next) => {
       .json({ error: "occurred_at must be a valid ISO 8601 UTC timestamp" });
   }
 
+  if (
+    typeof merchant_category !== "string" ||
+    merchant_category.trim() === ""
+  ) {
+    return res
+      .status(400)
+      .json({ error: "merchant_category must be a non-empty string" });
+  }
+
   if (isInvalidOptionalText(device)) {
     return res.status(400).json({
       error: "device must be a non-empty string when provided",
@@ -145,6 +157,7 @@ exports.createTransaction = async (req, res, next) => {
       error: "merchant must be a non-empty string when provided",
     });
   }
+
   try {
     const data = {
       account_id,
@@ -152,6 +165,7 @@ exports.createTransaction = async (req, res, next) => {
       currency,
       device,
       merchant,
+      merchant_category,
       occurred_at,
     };
     const createdTransaction = await createTransaction(data);

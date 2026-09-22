@@ -272,6 +272,76 @@ test("GET /api/transactions/17 returns nested predictions without repeated trans
   expect(db.getTransactionPredictionHistory).toHaveBeenCalledWith(17);
 });
 
+test("POST /api/transactions returns 400 when merchant_category is missing", async () => {
+  const requestBody = {
+    account_id: 4,
+    amount: "100.00",
+    currency: "USD",
+    device: "Phone",
+    merchant: "Example",
+    occurred_at: "2026-08-26T12:00:00.000Z",
+  };
+
+  const response = await request(app)
+    .post("/api/transactions")
+    .send(requestBody);
+
+  expect(response.statusCode).toBe(400);
+  expect(writeDb.createTransaction).not.toHaveBeenCalled();
+});
+
+test("POST /api/transactions passes merchant_category to createTransaction", async () => {
+  const requestBody = {
+    account_id: 4,
+    amount: "100.00",
+    currency: "USD",
+    device: "Phone",
+    merchant: "Example",
+    merchant_category: "es_transportation",
+    occurred_at: "2026-08-26T12:00:00.000Z",
+  };
+
+  writeDb.createTransaction.mockResolvedValue({
+    id: 1,
+    ...requestBody,
+    transaction_status: "PENDING",
+  });
+
+  const response = await request(app)
+    .post("/api/transactions")
+    .send(requestBody);
+
+  expect(response.statusCode).toBe(201);
+  expect(writeDb.createTransaction).toHaveBeenCalledTimes(1);
+  expect(writeDb.createTransaction).toHaveBeenCalledWith(requestBody);
+});
+
+test("POST /api/transactions successful response includes merchant_category", async () => {
+  const requestBody = {
+    account_id: 4,
+    amount: "100.00",
+    currency: "USD",
+    device: "Phone",
+    merchant: "Example",
+    merchant_category: "es_transportation",
+    occurred_at: "2026-08-26T12:00:00.000Z",
+  };
+
+  writeDb.createTransaction.mockImplementation(async (data) => ({
+    id: 1,
+    ...data,
+    transaction_status: "PENDING",
+    created_at: "2026-08-26T12:00:10.000Z",
+  }));
+
+  const response = await request(app)
+    .post("/api/transactions")
+    .send(requestBody);
+
+  expect(response.statusCode).toBe(201);
+  expect(response.body.merchant_category).toBe("es_transportation");
+});
+
 test("getTransactionById rejects and getTransactionPredictionHistory never called", async () => {
   const expectedReturnCode = 500;
   const expectedReturnBody = { error: "Internal server error" };
@@ -324,6 +394,7 @@ test("POST failing because of given transaction status", async () => {
     currency: "USD",
     device: "Phone",
     merchant: "Example",
+    merchant_category: "es_transportation",
     occurred_at: "2026-08-26T12:00:00.000Z",
     transaction_status: "COMPLETED",
   });
@@ -337,7 +408,8 @@ test.each(["account_id", "amount", "currency", "occurred_at"])(
   "POST /api/transactions returns 400 when %s is missing",
   async (missingField) => {
     const expectedReturnBody = {
-      error: "account_id, amount, currency, and occurred_at are required",
+      error:
+        "account_id, amount, currency, merchant_category, and occurred_at are required",
     };
     const expectedReturnCode = 400;
     const validRequestObject = {
@@ -346,6 +418,7 @@ test.each(["account_id", "amount", "currency", "occurred_at"])(
       currency: "USD",
       device: "Phone",
       merchant: "Example",
+      merchant_category: "es_transportation",
       occurred_at: "2026-08-26T12:00:00.000Z",
     };
     const requestBody = { ...validRequestObject };
@@ -374,6 +447,7 @@ test.each(["abc", "5", 1.5, 0, -1, null])(
       currency: "USD",
       device: "Phone",
       merchant: "Example",
+      merchant_category: "es_transportation",
       occurred_at: "2026-08-26T12:00:00.000Z",
     };
 
@@ -411,6 +485,7 @@ test.each([
       currency: "USD",
       device: "Phone",
       merchant: "Example",
+      merchant_category: "es_transportation",
       occurred_at: "2026-08-26T12:00:00.000Z",
     };
 
@@ -437,6 +512,7 @@ test.each(["usd", "US", "USDD", "U1D", " USD ", "", 123, null])(
       currency: currency,
       device: "Phone",
       merchant: "Example",
+      merchant_category: "es_transportation",
       occurred_at: "2026-08-26T12:00:00.000Z",
     };
 
@@ -471,6 +547,7 @@ test.each([
       currency: "USD",
       device: "Phone",
       merchant: "Example",
+      merchant_category: "es_transportation",
       occurred_at: occurred_at,
     };
 
@@ -500,6 +577,7 @@ test.each([
       currency: "USD",
       device: "Phone",
       merchant: "Example",
+      merchant_category: "es_transportation",
       occurred_at: "2026-08-26T12:00:00.000Z",
     };
     const errorMessages = {
@@ -532,6 +610,7 @@ test("POST /api/transactions returns 201 with the created transaction", async ()
     currency: "USD",
     merchant: null,
     device: null,
+    merchant_category: "es_transportation",
     transaction_status: "PENDING",
     occurred_at: "2026-08-26T12:00:00.000Z",
     created_at: "2026-08-26T12:00:10.000Z",
@@ -542,6 +621,7 @@ test("POST /api/transactions returns 201 with the created transaction", async ()
     currency: "USD",
     device: undefined,
     merchant: null,
+    merchant_category: "es_transportation",
     occurred_at: "2026-08-26T12:00:00.000Z",
   };
   const expectedReturnCode = 201;
@@ -565,6 +645,7 @@ test("POST /api/transactions returns 500 when the database is unavailable", asyn
     currency: "USD",
     device: undefined,
     merchant: null,
+    merchant_category: "es_transportation",
     occurred_at: "2026-08-26T12:00:00.000Z",
   };
   const expectedReturnCode = 500;
@@ -584,6 +665,32 @@ test("POST /api/transactions returns 500 when the database is unavailable", asyn
   expect(writeDb.createTransaction).toHaveBeenCalledTimes(1);
   expect(writeDb.createTransaction).toHaveBeenCalledWith(validRequestObject);
 });
+
+test.each([null, 123, "", "   "])(
+  "POST /api/transactions rejects invalid merchant_category: %p",
+  async (merchantCategory) => {
+    const requestBody = {
+      account_id: 4,
+      amount: "100.00",
+      currency: "USD",
+      device: "Phone",
+      merchant: "Example",
+      merchant_category: merchantCategory,
+      occurred_at: "2026-08-26T12:00:00.000Z",
+    };
+
+    const response = await request(app)
+      .post("/api/transactions")
+      .send(requestBody);
+
+    expect(response.statusCode).toBe(400);
+    expect(response.body).toStrictEqual({
+      error: "merchant_category must be a non-empty string",
+    });
+
+    expect(writeDb.createTransaction).not.toHaveBeenCalled();
+  },
+);
 
 test("PATCH /api/transactions/17/status returns 400 when transaction_status is missing", async () => {
   const requestObject = {};

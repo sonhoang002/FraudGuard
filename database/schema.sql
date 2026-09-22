@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS transactions (
         CHECK (amount > 0),
     device TEXT,
     merchant TEXT,
+    merchant_category TEXT NOT NULL
+        CHECK (btrim(merchant_category) <> ''),
     transaction_status TEXT NOT NULL 
         CHECK (
             transaction_status IN (
