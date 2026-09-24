@@ -57,4 +57,30 @@ async function updatePendingTransactionStatus(
   return result.rows[0];
 }
 
-module.exports = { createTransaction, updatePendingTransactionStatus };
+async function createFraudPrediction(data) {
+  const { transaction_id, model_version, score_probability, decision } = data;
+  const result = await pool.query(
+    `
+    INSERT INTO
+      fraud_predictions (transaction_id, model_version, score_probability, decision)
+    VALUES
+      ($1, $2, $3, $4)
+    RETURNING
+      id AS prediction_id,
+      transaction_id,
+      model_version,
+      score_probability,
+      decision,
+      created_at AS prediction_created_at
+    `,
+    [transaction_id, model_version, score_probability, decision],
+  );
+
+  return result.rows[0];
+}
+
+module.exports = {
+  createTransaction,
+  updatePendingTransactionStatus,
+  createFraudPrediction,
+};

@@ -3,11 +3,10 @@ const {
   getTransactionPredictionHistory,
 } = require("../../database/readQueries");
 
-const { createTransaction } = require("../../database/writeQueries");
-
 const {
   resolvePendingTransactionStatus,
   getTransactionDetails,
+  createAndScoreTransaction,
 } = require("../services/transactionService");
 
 function isInvalidOptionalText(value) {
@@ -168,9 +167,9 @@ exports.createTransaction = async (req, res, next) => {
       merchant_category,
       occurred_at,
     };
-    const createdTransaction = await createTransaction(data);
+    const result = await createAndScoreTransaction(data);
 
-    return res.status(201).json(createdTransaction);
+    return res.status(201).json(result);
   } catch (error) {
     next(error);
   }

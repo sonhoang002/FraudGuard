@@ -1,5 +1,8 @@
 jest.mock("../../database/readQueries");
 jest.mock("../../database/writeQueries");
+jest.mock("../clients/mlServiceClient");
+
+const mlClient = require("../clients/mlServiceClient");
 
 const request = require("supertest");
 const app = require("../app");
@@ -301,10 +304,20 @@ test("POST /api/transactions passes merchant_category to createTransaction", asy
     occurred_at: "2026-08-26T12:00:00.000Z",
   };
 
-  writeDb.createTransaction.mockResolvedValue({
-    id: 1,
-    ...requestBody,
-    transaction_status: "PENDING",
+  writeDb.createTransaction.mockResolvedValue(requestBody);
+
+  mlClient.getFraudPrediction.mockResolvedValue({
+    fraud_probability: 0.823451,
+    model_version: "banksim_logistic_v1",
+  });
+
+  writeDb.createFraudPrediction.mockResolvedValue({
+    prediction_id: 42,
+    transaction_id: 1,
+    model_version: "banksim_logistic_v1",
+    score_probability: "0.823451",
+    decision: "REVIEW",
+    prediction_created_at: "2026-08-26T12:00:10.125Z",
   });
 
   const response = await request(app)
@@ -327,19 +340,41 @@ test("POST /api/transactions successful response includes merchant_category", as
     occurred_at: "2026-08-26T12:00:00.000Z",
   };
 
-  writeDb.createTransaction.mockImplementation(async (data) => ({
+  const fakeReturningTransaction = {
     id: 1,
-    ...data,
+    account_id: 4,
+    amount: "100.00",
+    currency: "USD",
+    device: "Phone",
+    merchant: "Example",
+    merchant_category: "es_transportation",
     transaction_status: "PENDING",
+    occurred_at: "2026-08-26T12:00:00.000Z",
     created_at: "2026-08-26T12:00:10.000Z",
-  }));
+  };
+
+  writeDb.createTransaction.mockResolvedValue(fakeReturningTransaction);
+
+  mlClient.getFraudPrediction.mockResolvedValue({
+    fraud_probability: 0.823451,
+    model_version: "banksim_logistic_v1",
+  });
+
+  writeDb.createFraudPrediction.mockResolvedValue({
+    prediction_id: 42,
+    transaction_id: 1,
+    model_version: "banksim_logistic_v1",
+    score_probability: "0.823451",
+    decision: "REVIEW",
+    prediction_created_at: "2026-08-26T12:00:10.125Z",
+  });
 
   const response = await request(app)
     .post("/api/transactions")
     .send(requestBody);
 
   expect(response.statusCode).toBe(201);
-  expect(response.body.merchant_category).toBe("es_transportation");
+  expect(response.body.transaction.merchant_category).toBe("es_transportation");
 });
 
 test("getTransactionById rejects and getTransactionPredictionHistory never called", async () => {
@@ -624,16 +659,35 @@ test("POST /api/transactions returns 201 with the created transaction", async ()
     merchant_category: "es_transportation",
     occurred_at: "2026-08-26T12:00:00.000Z",
   };
-  const expectedReturnCode = 201;
+  const mlPrediction = {
+    fraud_probability: 0.823451,
+    model_version: "banksim_logistic_v1",
+  };
+  const storedPrediction = {
+    prediction_id: 42,
+    transaction_id: 1,
+    model_version: "banksim_logistic_v1",
+    score_probability: "0.823451",
+    decision: "REVIEW",
+    prediction_created_at: "2026-08-26T12:00:10.125Z",
+  };
 
   writeDb.createTransaction.mockResolvedValue(fakeReturningTransaction);
+  mlClient.getFraudPrediction.mockResolvedValue(mlPrediction);
+  writeDb.createFraudPrediction.mockResolvedValue(storedPrediction);
 
   const response = await request(app)
     .post("/api/transactions")
     .send(validRequestObject);
 
-  expect(response.statusCode).toBe(expectedReturnCode);
-  expect(response.body).toStrictEqual(fakeReturningTransaction);
+  expect(response.statusCode).toBe(201);
+  expect(response.body).toStrictEqual({
+    transaction: fakeReturningTransaction,
+    scoring: {
+      status: "SUCCESS",
+      prediction: storedPrediction,
+    },
+  });
   expect(writeDb.createTransaction).toHaveBeenCalledTimes(1);
   expect(writeDb.createTransaction).toHaveBeenCalledWith(validRequestObject);
 });
@@ -691,6 +745,55 @@ test.each([null, 123, "", "   "])(
     expect(writeDb.createTransaction).not.toHaveBeenCalled();
   },
 );
+
+test("POST /api/transactions returns 201 with failed scoring when ML service times out", async () => {
+  const requestBody = {
+    account_id: 4,
+    amount: "100.00",
+    currency: "USD",
+    device: "Phone",
+    merchant: "Example",
+    merchant_category: "es_transportation",
+    occurred_at: "2026-08-26T12:00:00.000Z",
+  };
+
+  const createdTransaction = {
+    id: 1,
+    account_id: 4,
+    amount: "100.00",
+    currency: "USD",
+    device: "Phone",
+    merchant: "Example",
+    merchant_category: "es_transportation",
+    transaction_status: "PENDING",
+    occurred_at: "2026-08-26T12:00:00.000Z",
+    created_at: "2026-08-26T12:00:10.000Z",
+  };
+
+  const timeoutError = new Error("ML service timed out");
+  timeoutError.code = "ML_SERVICE_TIMEOUT";
+
+  writeDb.createTransaction.mockResolvedValue(createdTransaction);
+  mlClient.getFraudPrediction.mockRejectedValue(timeoutError);
+
+  const response = await request(app)
+    .post("/api/transactions")
+    .send(requestBody);
+
+  expect(response.statusCode).toBe(201);
+
+  expect(response.body).toStrictEqual({
+    transaction: createdTransaction,
+    scoring: {
+      status: "FAILED",
+      prediction: null,
+      error_code: "ML_SERVICE_TIMEOUT",
+    },
+  });
+
+  expect(writeDb.createFraudPrediction).not.toHaveBeenCalled();
+  expect(writeDb.updatePendingTransactionStatus).not.toHaveBeenCalled();
+});
 
 test("PATCH /api/transactions/17/status returns 400 when transaction_status is missing", async () => {
   const requestObject = {};

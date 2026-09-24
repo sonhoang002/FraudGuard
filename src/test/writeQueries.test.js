@@ -4,6 +4,7 @@ const pool = require("../../database/pool");
 const {
   createTransaction,
   updatePendingTransactionStatus,
+  createFraudPrediction,
 } = require("../../database/writeQueries");
 
 beforeEach(() => {
@@ -108,4 +109,44 @@ test("updatePendingTransactionStatus returns merchant_category from updated tran
   expect(values).toStrictEqual(["COMPLETED", 17]);
 
   expect(result).toStrictEqual(expectedRow);
+});
+
+test("uses parameterized values in the correct order and returns the database row unchanged", async () => {
+  const predictionData = {
+    transaction_id: 17,
+    model_version: "banksim_logistic_v1",
+    score_probability: 0.823451,
+    decision: "REVIEW",
+  };
+
+  const expectedRow = {
+    prediction_id: 42,
+    transaction_id: 17,
+    model_version: "banksim_logistic_v1",
+    score_probability: "0.823451",
+    decision: "REVIEW",
+    prediction_created_at: "2026-09-23T23:30:00.125Z",
+  };
+
+  pool.query.mockResolvedValue({
+    rows: [expectedRow],
+  });
+
+  const result = await createFraudPrediction(predictionData);
+
+  const [sql, values] = pool.query.mock.calls[0];
+
+  expect(values).toEqual([17, "banksim_logistic_v1", 0.823451, "REVIEW"]);
+
+  expect(sql).toContain("$1");
+  expect(sql).toContain("$2");
+  expect(sql).toContain("$3");
+  expect(sql).toContain("$4");
+
+  expect(sql).not.toContain("$5");
+  expect(sql).not.toContain("banksim_logistic_v1");
+  expect(sql).not.toContain("0.823451");
+  expect(sql).not.toContain("REVIEW");
+
+  expect(result).toBe(expectedRow);
 });
