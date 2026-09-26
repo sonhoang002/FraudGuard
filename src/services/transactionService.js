@@ -12,7 +12,7 @@ const {
 
 const { getFraudPrediction } = require("../clients/mlServiceClient");
 
-const { getFraudDecision } = require("./fraudDecisionService");
+const { getFraudDecisionExplanation } = require("./fraudDecisionService");
 
 const DEGRADED_ML_ERROR_CODES = new Set([
   "ML_SERVICE_TIMEOUT",
@@ -64,12 +64,20 @@ async function getTransactionDetails(transactionId) {
       decision,
       prediction_created_at,
     } = prediction;
+
+    const explanation = getFraudDecisionExplanation(Number(score_probability));
+
     return {
       prediction_id,
       model_version,
       score_probability,
       decision,
       prediction_created_at,
+      explanation: {
+        reason_code: explanation.reason_code,
+        summary: explanation.summary,
+        limitation: explanation.limitation,
+      },
     };
   });
 
@@ -100,12 +108,15 @@ async function createAndScoreTransaction(transactionData) {
       scoring: {
         status: "FAILED",
         prediction: null,
+        explanation: null,
         error_code: error.code,
       },
     };
   }
 
-  const decision = getFraudDecision(mlPrediction.fraud_probability);
+  const { decision, ...explanation } = getFraudDecisionExplanation(
+    mlPrediction.fraud_probability,
+  );
 
   const storedPrediction = await createFraudPrediction({
     transaction_id: createdTransaction.id,
@@ -135,6 +146,7 @@ async function createAndScoreTransaction(transactionData) {
     scoring: {
       status: "SUCCESS",
       prediction: storedPrediction,
+      explanation,
     },
   };
 }

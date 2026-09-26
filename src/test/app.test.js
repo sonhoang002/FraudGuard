@@ -258,6 +258,13 @@ test("GET /api/transactions/17 returns nested predictions without repeated trans
     score_probability: "0.75",
     decision: "REVIEW",
     prediction_created_at: "2026-08-26T12:00:00.000Z",
+    explanation: {
+      reason_code: "SCORE_IN_REVIEW_RANGE",
+      summary:
+        "The score is at least 0.50 and below 0.90, so manual review is required.",
+      limitation:
+        "This score is a ranking signal from a synthetic-data model, not a calibrated real-world fraud probability.",
+    },
   };
   const expectedReturnBody = {
     ...mockTransaction,
@@ -671,6 +678,13 @@ test("POST /api/transactions returns 201 with the created transaction", async ()
     decision: "REVIEW",
     prediction_created_at: "2026-08-26T12:00:10.125Z",
   };
+  const expectedExplanation = {
+    reason_code: "SCORE_IN_REVIEW_RANGE",
+    summary:
+      "The score is at least 0.50 and below 0.90, so manual review is required.",
+    limitation:
+      "This score is a ranking signal from a synthetic-data model, not a calibrated real-world fraud probability.",
+  };
 
   writeDb.createTransaction.mockResolvedValue(fakeReturningTransaction);
   mlClient.getFraudPrediction.mockResolvedValue(mlPrediction);
@@ -686,6 +700,7 @@ test("POST /api/transactions returns 201 with the created transaction", async ()
     scoring: {
       status: "SUCCESS",
       prediction: storedPrediction,
+      explanation: expectedExplanation,
     },
   });
   expect(writeDb.createTransaction).toHaveBeenCalledTimes(1);
@@ -787,6 +802,7 @@ test("POST /api/transactions returns 201 with failed scoring when ML service tim
     scoring: {
       status: "FAILED",
       prediction: null,
+      explanation: null,
       error_code: "ML_SERVICE_TIMEOUT",
     },
   });

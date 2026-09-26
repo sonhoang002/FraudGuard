@@ -88,6 +88,13 @@ test("creates a pending transaction, scores it, stores REVIEW prediction, and le
     scoring: {
       status: "SUCCESS",
       prediction: storedPrediction,
+      explanation: {
+        reason_code: "SCORE_IN_REVIEW_RANGE",
+        summary:
+          "The score is at least 0.50 and below 0.90, so manual review is required.",
+        limitation:
+          "This score is a ranking signal from a synthetic-data model, not a calibrated real-world fraud probability.",
+      },
     },
   });
 });
@@ -148,6 +155,7 @@ test.each([
       scoring: {
         status: "FAILED",
         prediction: null,
+        explanation: null,
         error_code: errorCode,
       },
     });
@@ -159,15 +167,27 @@ test.each([
     score: 0.2,
     expectedDecision: "APPROVE",
     expectedStatus: "COMPLETED",
+    expectedExplanation: {
+      reason_code: "SCORE_BELOW_REVIEW_THRESHOLD",
+      summary: "The score is below 0.50, so the transaction is approved.",
+      limitation:
+        "This score is a ranking signal from a synthetic-data model, not a calibrated real-world fraud probability.",
+    },
   },
   {
     score: 0.95,
     expectedDecision: "BLOCK",
     expectedStatus: "DECLINED",
+    expectedExplanation: {
+      reason_code: "SCORE_AT_OR_ABOVE_BLOCK_THRESHOLD",
+      summary: "The score is at least 0.90, so the transaction is blocked.",
+      limitation:
+        "This score is a ranking signal from a synthetic-data model, not a calibrated real-world fraud probability.",
+    },
   },
 ])(
   "$expectedDecision changes transaction to $expectedStatus",
-  async ({ score, expectedDecision, expectedStatus }) => {
+  async ({ score, expectedDecision, expectedStatus, expectedExplanation }) => {
     const transactionData = {
       account_id: 4,
       amount: "125.50",
@@ -234,6 +254,7 @@ test.each([
       scoring: {
         status: "SUCCESS",
         prediction: storedPrediction,
+        explanation: expectedExplanation,
       },
     });
 
