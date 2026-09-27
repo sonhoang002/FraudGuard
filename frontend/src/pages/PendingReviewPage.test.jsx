@@ -95,6 +95,7 @@ test("Test selecting a transaction.", async () => {
     amount: "125.50",
     currency: "USD",
     merchant: null,
+    merchant_category: "es_fashion",
     transaction_status: "PENDING",
     occurred_at: "2026-08-26T12:00:00.000Z",
     account_id: 2,
@@ -121,6 +122,16 @@ test("Test selecting a transaction.", async () => {
       "No prediction history is available for this transaction.",
     ),
   ).toBeInTheDocument();
+  expect(
+    screen.getByText("Merchant category (model input)"),
+  ).toBeInTheDocument();
+
+  expect(screen.getByText("es_fashion")).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      "Fraud scoring uses the transaction amount and merchant category as model inputs. These values provide context but do not by themselves explain why the model assigned its score.",
+    ),
+  ).toBeInTheDocument();
 });
 
 test("Test successful approval", async () => {
@@ -139,6 +150,7 @@ test("Test successful approval", async () => {
     amount: "125.50",
     currency: "USD",
     merchant: null,
+    merchant_category: "es_fashion",
     transaction_status: "PENDING",
     occurred_at: "2026-08-26T12:00:00.000Z",
     account_id: 2,
@@ -194,6 +206,16 @@ test("Test successful approval", async () => {
   expect(
     screen.queryByRole("button", { name: "Decline transaction" }),
   ).not.toBeInTheDocument();
+  expect(
+    screen.getByText("Merchant category (model input)"),
+  ).toBeInTheDocument();
+
+  expect(screen.getByText("es_fashion")).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      "Fraud scoring uses the transaction amount and merchant category as model inputs. These values provide context but do not by themselves explain why the model assigned its score.",
+    ),
+  ).toBeInTheDocument();
 });
 
 test("Test 409 conflict", async () => {
@@ -213,6 +235,7 @@ test("Test 409 conflict", async () => {
     currency: "USD",
     merchant: null,
     transaction_status: "PENDING",
+    merchant_category: "es_fashion",
     occurred_at: "2026-08-26T12:00:00.000Z",
     account_id: 2,
     device: null,
@@ -278,6 +301,16 @@ test("Test 409 conflict", async () => {
   expect(
     screen.getByText(
       "This score is a ranking signal from a synthetic-data model, not a calibrated real-world fraud probability.",
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText("Merchant category (model input)"),
+  ).toBeInTheDocument();
+
+  expect(screen.getByText("es_fashion")).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      "Fraud scoring uses the transaction amount and merchant category as model inputs. These values provide context but do not by themselves explain why the model assigned its score.",
     ),
   ).toBeInTheDocument();
 });

@@ -46,6 +46,10 @@ function TransactionSummary({
           <dd>{transaction.merchant ?? "Not provided"}</dd>
         </div>
         <div className="summary-field">
+          <dt>Merchant category (model input)</dt>
+          <dd>{transaction.merchant_category}</dd>
+        </div>
+        <div className="summary-field">
           <dt>Device</dt>
           <dd>{transaction.device ?? "Not provided"}</dd>
         </div>
@@ -62,6 +66,11 @@ function TransactionSummary({
           <dd>{formattedCreatedAt}</dd>
         </div>
       </dl>
+      <p className="model-input-context">
+        Fraud scoring uses the transaction amount and merchant category as model
+        inputs. These values provide context but do not by themselves explain
+        why the model assigned its score.
+      </p>
 
       {transaction.transaction_status === "PENDING" && (
         <div className="review-actions" aria-label="Manual review actions">
