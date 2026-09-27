@@ -93,7 +93,7 @@ test("GET pending transactions returns 500 when the database query fails", async
 });
 
 test("GET /api/transactions/4/predictions returns 200 with prediction history", async () => {
-  const fakePredictionArray = [
+  const rawPredictionRows = [
     {
       transaction_id: 4,
       amount: "100.00",
@@ -105,13 +105,29 @@ test("GET /api/transactions/4/predictions returns 200 with prediction history", 
       prediction_created_at: "2026-08-26T12:00:00.000Z",
     },
   ];
+  const expectedPredictionHistory = [
+    {
+      prediction_id: 5,
+      model_version: "v0.2",
+      score_probability: "0.75",
+      decision: "REVIEW",
+      prediction_created_at: "2026-08-26T12:00:00.000Z",
+      explanation: {
+        reason_code: "SCORE_IN_REVIEW_RANGE",
+        summary:
+          "The score is at least 0.50 and below 0.90, so manual review is required.",
+        limitation:
+          "This score is a ranking signal from a synthetic-data model, not a calibrated real-world fraud probability.",
+      },
+    },
+  ];
 
-  db.getTransactionPredictionHistory.mockResolvedValue(fakePredictionArray);
+  db.getTransactionPredictionHistory.mockResolvedValue(rawPredictionRows);
 
   const response = await request(app).get("/api/transactions/4/predictions");
 
   expect(response.statusCode).toBe(200);
-  expect(response.body).toStrictEqual(fakePredictionArray);
+  expect(response.body).toStrictEqual(expectedPredictionHistory);
   expect(db.getTransactionPredictionHistory).toHaveBeenCalledWith(4);
 });
 

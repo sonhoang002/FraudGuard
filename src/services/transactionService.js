@@ -56,35 +56,37 @@ async function getTransactionDetails(transactionId) {
   const predictionHistory =
     await getTransactionPredictionHistory(transactionId);
 
-  const cleanedPredictionHistory = predictionHistory.map((prediction) => {
-    const {
-      prediction_id,
-      model_version,
-      score_probability,
-      decision,
-      prediction_created_at,
-    } = prediction;
-
-    const explanation = getFraudDecisionExplanation(Number(score_probability));
-
-    return {
-      prediction_id,
-      model_version,
-      score_probability,
-      decision,
-      prediction_created_at,
-      explanation: {
-        reason_code: explanation.reason_code,
-        summary: explanation.summary,
-        limitation: explanation.limitation,
-      },
-    };
-  });
+  const cleanedPredictionHistory = predictionHistory.map(formatFraudPrediction);
 
   return {
     outcome: "FOUND",
     ...existingTransaction,
     predictions: cleanedPredictionHistory,
+  };
+}
+
+function formatFraudPrediction(prediction) {
+  const {
+    prediction_id,
+    model_version,
+    score_probability,
+    decision,
+    prediction_created_at,
+  } = prediction;
+
+  const explanation = getFraudDecisionExplanation(Number(score_probability));
+
+  return {
+    prediction_id,
+    model_version,
+    score_probability,
+    decision,
+    prediction_created_at,
+    explanation: {
+      reason_code: explanation.reason_code,
+      summary: explanation.summary,
+      limitation: explanation.limitation,
+    },
   };
 }
 
@@ -151,8 +153,16 @@ async function createAndScoreTransaction(transactionData) {
   };
 }
 
+async function getPredictionHistory(transactionId) {
+  const predictionHistory =
+    await getTransactionPredictionHistory(transactionId);
+
+  return predictionHistory.map(formatFraudPrediction);
+}
+
 module.exports = {
   resolvePendingTransactionStatus,
   getTransactionDetails,
   createAndScoreTransaction,
+  getPredictionHistory,
 };
