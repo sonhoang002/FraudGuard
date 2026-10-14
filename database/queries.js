@@ -24,9 +24,9 @@ async function insertStatement() {
     const transactionInsert1 = await client.query(
       `
       INSERT INTO transactions
-        (account_id, amount, device, merchant, transaction_status, currency, occurred_at)
+        (account_id, amount, device, merchant, merchant_category, transaction_status, currency, occurred_at)
       VALUES
-        ($1, 100.00, 'Phone', 'Someone', 'COMPLETED', 'CAD', NOW())
+        ($1, 100.00, 'Phone', 'Someone', 'es_transportation', 'COMPLETED', 'CAD', NOW())
       RETURNING id
       `,
       [accountInsert.rows[0].id],
@@ -35,9 +35,9 @@ async function insertStatement() {
     const transactionInsert2 = await client.query(
       `
       INSERT INTO transactions
-        (account_id, amount, device, merchant, transaction_status, currency, occurred_at)
+        (account_id, amount, device, merchant, merchant_category, transaction_status, currency, occurred_at)
       VALUES
-        ($1, 120.00, 'Laptop', 'Someone2', 'PENDING', 'USD', NOW())
+        ($1, 120.00, 'Laptop', 'Someone2', 'es_fashion', 'PENDING', 'USD', NOW())
       RETURNING id
       `,
       [accountInsert.rows[0].id],
@@ -46,9 +46,9 @@ async function insertStatement() {
     await client.query(
       `
       INSERT INTO fraud_predictions
-        (transaction_id, model_version, score_probability, decision)
+        (transaction_id, model_version, decision_policy_version, score_probability, decision)
       VALUES
-        ($1, 'v0.1', 0.00, 'APPROVE')
+        ($1, 'v0.1', 'legacy_unversioned', 0.00, 'APPROVE')
       `,
       [transactionInsert1.rows[0].id],
     );
@@ -56,9 +56,9 @@ async function insertStatement() {
     await client.query(
       `
       INSERT INTO fraud_predictions
-        (transaction_id, model_version, score_probability, decision)
+        (transaction_id, model_version, decision_policy_version, score_probability, decision)
       VALUES
-        ($1, 'v0.1', 0.80, 'REVIEW')
+        ($1, 'v0.1', 'legacy_unversioned', 0.80, 'REVIEW')
       `,
       [transactionInsert2.rows[0].id],
     );
@@ -66,9 +66,9 @@ async function insertStatement() {
     await client.query(
       `
       INSERT INTO fraud_predictions
-        (transaction_id, model_version, score_probability, decision)
+        (transaction_id, model_version, decision_policy_version, score_probability, decision)
       VALUES
-        ($1, 'v0.2', 0.75, 'REVIEW')
+        ($1, 'v0.2', 'legacy_unversioned', 0.75, 'REVIEW')
       `,
       [transactionInsert2.rows[0].id],
     );
@@ -82,4 +82,8 @@ async function insertStatement() {
   }
 }
 
-insertStatement().catch(console.error);
+if (require.main === module) {
+  insertStatement().catch(console.error);
+}
+
+module.exports = { insertStatement };

@@ -2,7 +2,7 @@
 
 FraudGuard is a learning-first, end-to-end fraud scoring and decisioning platform. It combines a React analyst dashboard, a Node.js/Express API, PostgreSQL audit history, and a Python/FastAPI machine-learning service.
 
-The project is implemented through Day 33 of a roughly 40-day roadmap. The core application, model-backed scoring flow, failure handling, explainability, and decision-policy auditability are complete. Docker, deployment, authentication, and final portfolio polish are not yet complete.
+The project is implemented through Day 34 of a roughly 40-day roadmap. The core application, model-backed scoring flow, failure handling, explainability, decision-policy auditability, and current-schema seed reliability are complete. Docker, deployment, authentication, and final portfolio polish are not yet complete.
 
 ## What FraudGuard Does
 
@@ -210,26 +210,18 @@ The current database pool expects PostgreSQL on `localhost:5432`, database `frau
 
 Create an empty PostgreSQL database named `fraudguard`, then run `database/schema.sql` once using pgAdmin or another PostgreSQL client.
 
-For a fresh development account, run this once and keep the returned account ID for API requests:
+Seed the fresh database with a development user, account, transactions, and prediction history:
 
-```sql
-WITH new_user AS (
-  INSERT INTO users (username, password_hash)
-  VALUES ('Customer1', 'development-only-placeholder')
-  RETURNING id
-)
-INSERT INTO accounts (user_id, account_type)
-SELECT id, 'checking'
-FROM new_user
-RETURNING id;
+```powershell
+npm run seed
 ```
+
+Run the seed once against an empty database. It intentionally uses a fixed username, so running it again will fail the unique-username constraint and roll back the whole seed transaction.
 
 Do not run the migration files after creating a fresh database from the current schema. They exist only to upgrade older development databases:
 
 1. `001_add_merchant_category.sql`
 2. `002_add_decision_policy_version.sql`
-
-The legacy `npm run seed` script is not part of the supported fresh setup yet because its sample inserts predate the required `merchant_category` and `decision_policy_version` fields.
 
 ### 4. Start all three application processes
 
@@ -284,7 +276,7 @@ python -m ruff format --check ml_service
 
 Current automated verification:
 
-- 130 passing backend Jest/Supertest and query-layer tests;
+- 132 passing backend Jest/Supertest and query-layer tests;
 - 7 passing frontend Vitest/React Testing Library tests;
 - 5 passing Python pytest tests;
 - frontend ESLint and production build passing.
@@ -329,8 +321,7 @@ ml_service/
 - The model was trained on synthetic BankSim data and is not suitable for real financial decisions.
 - Authentication, authorization, and reviewer identity are intentionally outside the current V1 scope.
 - Prediction insertion and automatic transaction-status update are separate database statements rather than one atomic database transaction.
-- Docker, Docker Compose, and deployment are planned for Days 34-40 but are not implemented yet.
-- The legacy sample seed script still needs alignment with the current required schema fields.
+- Docker, Docker Compose, and deployment are planned for the remaining Days 35-40 but are not implemented yet.
 
 ## Security Notes
 
