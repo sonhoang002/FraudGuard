@@ -1,185 +1,351 @@
 # FraudGuard
 
-FraudGuard is a learning-first portfolio project for a real-time fraud detection and decisioning platform. It is being built in roughly 40 days to demonstrate practical backend engineering, PostgreSQL design, machine-learning integration, and explainable business decisions.
+FraudGuard is a learning-first, end-to-end fraud scoring and decisioning platform. It combines a React analyst dashboard, a Node.js/Express API, PostgreSQL audit history, and a Python/FastAPI machine-learning service.
 
-## Current Progress
+The project is implemented through Day 33 of a roughly 40-day roadmap. The core application, model-backed scoring flow, failure handling, explainability, and decision-policy auditability are complete. Docker, deployment, authentication, and final portfolio polish are not yet complete.
 
-Days 1-14 are complete:
+## What FraudGuard Does
 
-- Designed a PostgreSQL schema for users, accounts, transactions, and fraud predictions.
-- Added foreign keys, indexes, and database constraints for data integrity.
-- Kept immutable transaction events separate from historical fraud predictions.
-- Inserted sample data inside a database transaction.
-- Validated unique, check, and foreign-key constraints with intentionally invalid data.
-- Added parameterized read queries for pending transactions, transaction details, and prediction history.
-- Added Express health, pending-review queue, transaction-detail, and prediction-history endpoints.
-- Added `POST /api/transactions` with strict request validation and a parameterized PostgreSQL insert.
-- Kept transaction status backend-owned and initialized new transactions as `PENDING`.
-- Added an atomic manual-review status workflow for resolving pending transactions to `COMPLETED` or `DECLINED`.
-- Added 84 Jest/Supertest and query-layer cases covering success, validation, empty results, state conflicts, 404s, parameterization, and database failures.
-- Verified transaction creation, manual review, pending reads, and transaction details against local PostgreSQL.
-- Added a React/Vite analyst dashboard that fetches the live pending-review queue through a development proxy.
-- Added loading, empty, error, and populated states with request cancellation during component cleanup.
-- Added reusable queue components, localized currency/date display, and a responsive accessible table layout.
-- Added transaction-detail, prediction-history, approval/decline, and stale-client conflict-reconciliation workflows.
-- Added 7 Vitest/React Testing Library behavior tests for queue states and the core analyst workflow.
-- Established the Python/pandas environment and completed a Ruff-verified transaction-analysis workflow covering DataFrames, reproducible CSV loading, schema validation, missing values, filtering, aggregation, and vectorized features.
+- Stores financial transactions in PostgreSQL.
+- Sends transaction amount and merchant category to a versioned FastAPI model.
+- Converts the model score into an operational `APPROVE`, `REVIEW`, or `BLOCK` decision in Node.js.
+- Preserves append-only prediction history with both model and decision-policy versions.
+- Keeps transactions pending for manual review when automatic scoring cannot complete.
+- Gives analysts a responsive queue, transaction details, prediction history, decision explanations, and approve/decline controls.
+- Handles stale manual-review attempts with an atomic pending-only update and `409 Conflict` reconciliation.
 
-## Current API
-
-- `GET /health` checks whether the Express application is responding.
-- `GET /api/transactions/pending` returns the all-customer pending-review queue.
-- `GET /api/transactions/pending?username=Customer1` optionally filters that queue by customer.
-- `GET /api/transactions/:transactionId` returns one transaction with nested prediction history.
-- `GET /api/transactions/:transactionId/predictions` returns the standalone prediction-history collection.
-- `POST /api/transactions` creates a transaction with backend-owned initial `PENDING` status.
-- `PATCH /api/transactions/:transactionId/status` resolves a pending transaction to `COMPLETED` or `DECLINED`.
-
-The transaction-detail endpoint returns `200` with `predictions: []` when a transaction exists without predictions, `404` when the transaction does not exist, and `400` for an invalid ID. Unexpected failures use the generic `500` response without exposing database details.
-
-## Planned Architecture
+## Implemented Architecture
 
 ```text
 React analyst dashboard
           |
           v
-Node.js / Express API ----> PostgreSQL
+Node.js / Express API
           |
-          v
-Python FastAPI ML service
+          +----------> PostgreSQL
           |
-          v
-Fraud probability
-          |
-          v
-Node decision engine: APPROVE | REVIEW | BLOCK
+          +----------> Python FastAPI ML service
+                              |
+                              v
+                    BankSim logistic pipeline
+                              |
+                              v
+                       fraud risk score
+                              |
+                              v
+                   Node decision policy
+                    /       |       \
+               APPROVE   REVIEW   BLOCK
 ```
 
-The machine-learning service will estimate risk. The Node.js backend will own the business rules that turn a risk score into an operational decision.
+Responsibility boundaries:
 
-## Database Model
+- **React** presents backend data and analyst actions. It does not recalculate fraud decisions.
+- **Express** validates requests, orchestrates persistence and scoring, owns business thresholds, and shapes public API responses.
+- **PostgreSQL** stores users, accounts, immutable transaction facts, and append-only prediction history.
+- **FastAPI** loads the persisted scikit-learn pipeline and returns a score plus model version.
+- **The model** ranks synthetic fraud risk; it does not choose the business action.
+
+## Automatic Decision Policy
+
+The current policy version is `fraud_thresholds_v1`.
+
+| Score range | Decision | Transaction status |
+| --- | --- | --- |
+| `0.00 <= score < 0.50` | `APPROVE` | `COMPLETED` |
+| `0.50 <= score < 0.90` | `REVIEW` | `PENDING` |
+| `0.90 <= score <= 1.00` | `BLOCK` | `DECLINED` |
+
+These are educational operating thresholds. The score comes from a synthetic-data model and is a ranking signal, not a calibrated real-world fraud probability.
+
+### Scoring failure behavior
+
+The transaction is stored before FraudGuard calls FastAPI. If the ML service times out, is unavailable, returns a non-successful response, or returns invalid data:
+
+- the API still returns `201 Created` because the transaction was saved;
+- the transaction remains `PENDING` for manual review;
+- no fraud-prediction row is created because no valid model conclusion exists;
+- `scoring.status` is `FAILED`, with a stable error code.
+
+## Auditability
+
+A transaction records what happened. A fraud prediction records what the system concluded about that transaction. They remain separate so one transaction can retain multiple historical predictions.
 
 ```text
 users 1 ----< accounts 1 ----< transactions 1 ----< fraud_predictions
 ```
 
-- A transaction records what happened.
-- A fraud prediction records what the system concluded about that transaction.
-- Predictions are historical: a transaction can have multiple scores from different model versions.
-- Transaction details are immutable after creation; only `transaction_status` can change.
+Each prediction records:
+
+- the model version that produced the score;
+- the decision-policy version that interpreted the score;
+- the stored score and decision;
+- when the prediction was created.
+
+Predictions created before policy tracking were added are labeled `legacy_unversioned`. Their API explanation honestly states that the original thresholds cannot be verified instead of applying today’s thresholds retroactively.
+
+## Machine-Learning Model
+
+The persisted `banksim_logistic_v1` pipeline uses transaction amount and merchant category. It was trained and evaluated chronologically on the synthetic BankSim dataset.
+
+Final test results:
+
+- ROC AUC: `0.9920`;
+- average precision: `0.7689`;
+- test fraud prevalence: `1.08%`;
+- harder non-transportation ROC AUC: `0.9439`.
+
+These results support the educational pipeline on simulated data only. They are not evidence of real-world production performance. The raw BankSim CSV is intentionally excluded from Git; the versioned fitted pipeline and metadata are included.
+
+## API
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/health` | Express health check |
+| `GET` | `/api/transactions/pending` | All pending transactions |
+| `GET` | `/api/transactions/pending?username=Customer1` | Pending transactions filtered by username |
+| `GET` | `/api/transactions/:transactionId` | One transaction with nested prediction history |
+| `GET` | `/api/transactions/:transactionId/predictions` | Standalone prediction history |
+| `POST` | `/api/transactions` | Store and automatically score a transaction |
+| `PATCH` | `/api/transactions/:transactionId/status` | Manually resolve a pending transaction |
+
+### Create and score a transaction
+
+Required request fields are `account_id`, `amount`, `currency`, `merchant_category`, and `occurred_at`. The amount must be a positive decimal string, and the timestamp must be canonical ISO 8601 UTC.
+
+```json
+{
+  "account_id": 1,
+  "amount": "125.50",
+  "merchant": "Campus Store",
+  "merchant_category": "es_fashion",
+  "device": "mobile",
+  "currency": "USD",
+  "occurred_at": "2026-09-23T23:29:45.000Z"
+}
+```
+
+A successful score returns the stored transaction, persisted prediction, and backend-generated explanation:
+
+```json
+{
+  "transaction": {
+    "id": 17,
+    "transaction_status": "PENDING"
+  },
+  "scoring": {
+    "status": "SUCCESS",
+    "prediction": {
+      "model_version": "banksim_logistic_v1",
+      "decision_policy_version": "fraud_thresholds_v1",
+      "score_probability": "0.823451",
+      "decision": "REVIEW"
+    },
+    "explanation": {
+      "reason_code": "SCORE_IN_REVIEW_RANGE"
+    }
+  }
+}
+```
+
+When automatic scoring fails after the transaction is stored:
+
+```json
+{
+  "transaction": {
+    "id": 18,
+    "transaction_status": "PENDING"
+  },
+  "scoring": {
+    "status": "FAILED",
+    "prediction": null,
+    "explanation": null,
+    "error_code": "ML_SERVICE_TIMEOUT"
+  }
+}
+```
 
 ## Local Setup
 
-Prerequisites:
+### Prerequisites
 
 - Node.js
 - PostgreSQL
 - Python 3.14
 
-1. Install the backend dependencies from the repository root:
+### 1. Install dependencies
 
-   ```bash
-   npm install
-   ```
+From the repository root:
 
-2. Install the frontend dependencies:
+```powershell
+npm install
+cd frontend
+npm install
+cd ..
+```
 
-   ```bash
-   cd frontend
-   npm install
-   cd ..
-   ```
+Create the Python environment:
 
-3. Create and activate the Python environment, then install its dependencies:
+```powershell
+cd ml_service
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+cd ..
+```
 
-   ```powershell
-   cd ml_service
-   python -m venv .venv
-   .\.venv\Scripts\Activate.ps1
-   python -m pip install -r requirements.txt
-   cd ..
-   ```
+### 2. Configure environment variables
 
-4. Create a local PostgreSQL database named `fraudguard`.
+Copy `.env.example` to `.env`, then set your local PostgreSQL password:
 
-5. Create a `.env` file from `.env.example` and set your local PostgreSQL password.
+```dotenv
+LOCAL_DATABASE_PASSWORD=replace_with_your_local_postgres_password
+ML_SERVICE_URL=http://127.0.0.1:8000
+ML_SERVICE_TIMEOUT_MS=2000
+```
 
-6. Run `database/schema.sql` against the `fraudguard` database using your preferred PostgreSQL client.
+The current database pool expects PostgreSQL on `localhost:5432`, database `fraudguard`, and user `postgres`.
 
-7. Insert the sample records:
+### 3. Create the database
 
-   ```bash
-   npm run seed
-   ```
+Create an empty PostgreSQL database named `fraudguard`, then run `database/schema.sql` once using pgAdmin or another PostgreSQL client.
 
-Run the seed script against an empty database. It uses a fixed sample username, so a second run will correctly fail the database's unique-username constraint.
+For a fresh development account, run this once and keep the returned account ID for API requests:
 
-Start Express from the repository root:
+```sql
+WITH new_user AS (
+  INSERT INTO users (username, password_hash)
+  VALUES ('Customer1', 'development-only-placeholder')
+  RETURNING id
+)
+INSERT INTO accounts (user_id, account_type)
+SELECT id, 'checking'
+FROM new_user
+RETURNING id;
+```
 
-```bash
+Do not run the migration files after creating a fresh database from the current schema. They exist only to upgrade older development databases:
+
+1. `001_add_merchant_category.sql`
+2. `002_add_decision_policy_version.sql`
+
+The legacy `npm run seed` script is not part of the supported fresh setup yet because its sample inserts predate the required `merchant_category` and `decision_policy_version` fields.
+
+### 4. Start all three application processes
+
+Start FastAPI from `ml_service`:
+
+```powershell
+cd ml_service
+.\.venv\Scripts\Activate.ps1
+python -m uvicorn app:app --reload --host 127.0.0.1 --port 8000
+```
+
+In a second terminal, start Express from the repository root:
+
+```powershell
 npm run dev
 ```
 
-In a second terminal, start Vite:
+In a third terminal, start Vite:
 
-```bash
+```powershell
 cd frontend
 npm run dev
 ```
 
-During local development, Vite forwards relative `/api` requests to Express on port `3000`.
+Vite forwards relative `/api` requests to Express on port `3000`. FastAPI runs on port `8000`.
 
-`database/validation.sql` contains intentionally invalid statements for manually testing database constraints. Run them one at a time; each is expected to fail.
+## Verification
+
+Backend tests from the repository root:
+
+```powershell
+npm.cmd test -- --runInBand
+```
+
+Frontend tests, lint, and production build:
+
+```powershell
+cd frontend
+npm.cmd test -- --run
+npm.cmd run lint
+npm.cmd run build
+cd ..
+```
+
+Python tests and formatting checks from the repository root with the virtual environment active:
+
+```powershell
+python -m pytest ml_service
+python -m ruff check ml_service
+python -m ruff format --check ml_service
+```
+
+Current automated verification:
+
+- 130 passing backend Jest/Supertest and query-layer tests;
+- 7 passing frontend Vitest/React Testing Library tests;
+- 5 passing Python pytest tests;
+- frontend ESLint and production build passing.
 
 ## Project Structure
 
 ```text
 database/
-  schema.sql         PostgreSQL tables, constraints, and indexes
-  queries.js         Sample data insertion script
-  validation.sql     Intentional constraint failures and join practice
-  pool.js            PostgreSQL connection pool
-  readQueries.js     Parameterized application reads
-  writeQueries.js    Parameterized transaction creation and status updates
+  migrations/          Additive upgrades for older development databases
+  schema.sql           Fresh PostgreSQL schema
+  readQueries.js       Parameterized application reads
+  writeQueries.js      Parameterized writes and pending-only status update
 src/
-  app.js             Express configuration
-  server.js          Network startup
-  controllers/       HTTP validation and responses
-  routes/            API route definitions
-  services/          Multi-query workflows and business outcomes
-  middleware/        JSON 404 and 500 handlers
-  test/              Jest/Supertest integration and query-layer tests
+  clients/             FastAPI prediction client
+  controllers/         HTTP validation and response mapping
+  middleware/          JSON 404 and centralized error handling
+  routes/              Express route definitions
+  services/            Orchestration, decisions, and response shaping
+  test/                Jest, Supertest, and query-layer tests
 frontend/
-  src/api/           Browser API functions
-  src/components/    Reusable queue presentation components
-  src/pages/         Page-level request state and composition
-  vite.config.js     React plugin and local API proxy configuration
+  src/api/             Browser API helpers
+  src/components/      Reusable analyst UI components
+  src/pages/           Page-level request state and review workflow
 ml_service/
-  data/
-    transactions.csv  Reproducible transaction-analysis input
-  requirements.txt   Exact Python environment dependencies
-  transaction_practice.py  CSV loading, validation, and pandas analysis
+  app.py               FastAPI health and prediction endpoints
+  models/              Versioned pipeline and model metadata
+  banksim_analysis.py  Training, evaluation, and artifact persistence
+  test_app.py          FastAPI behavior tests
 ```
 
-## V1 Stack
+## Technology Stack
 
-- React with JavaScript
-- Node.js and Express
-- PostgreSQL with `pg`
-- Python, pandas, NumPy, and scikit-learn
-- FastAPI
-- Docker
+- React 19, Vite, JavaScript, and CSS
+- Node.js, Express 5, and the built-in Fetch API
+- PostgreSQL and `pg`
+- Python 3.14, pandas, NumPy, and scikit-learn
+- FastAPI and Uvicorn
+- Jest, Supertest, Vitest, React Testing Library, pytest, Ruff, and ESLint
 
-## Security Note
+## Current Limitations
 
-Never commit `.env` files, database passwords, or real credentials. `.env.example` documents the required variable without containing a secret.
+- The model was trained on synthetic BankSim data and is not suitable for real financial decisions.
+- Authentication, authorization, and reviewer identity are intentionally outside the current V1 scope.
+- Prediction insertion and automatic transaction-status update are separate database statements rather than one atomic database transaction.
+- Docker, Docker Compose, and deployment are planned for Days 34-40 but are not implemented yet.
+- The legacy sample seed script still needs alignment with the current required schema fields.
+
+## Security Notes
+
+- Never commit `.env`, passwords, API keys, or real customer data.
+- The included password value is a development placeholder, not a real authentication credential.
+- Load the joblib model only from a trusted project source because deserialization can execute code.
+- FraudGuard is an educational portfolio project, not a production fraud-control system.
 
 ## Roadmap
 
-- Days 1-4: Architecture and PostgreSQL
-- Days 5-9: Express backend
+- Days 1-4: PostgreSQL architecture and data integrity
+- Days 5-9: Express API and transaction workflows
 - Days 10-12: React analyst dashboard
 - Days 13-18: Python and pandas foundations
-- Days 19-24: Machine learning
-- Days 25-33: FastAPI inference, decision engine, and explainability
-- Days 34-40: Testing, Docker, deployment, and documentation
+- Days 19-24: machine-learning evaluation and model selection
+- Days 25-28: FastAPI inference and automatic scoring integration
+- Days 29-33: explainability and decision-policy auditability
+- Days 34-40: final testing, Docker, deployment, documentation, and portfolio polish
