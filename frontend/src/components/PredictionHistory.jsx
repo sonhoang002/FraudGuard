@@ -20,6 +20,7 @@ function PredictionHistory({ predictions }) {
             <tr>
               <th scope="col">Prediction ID</th>
               <th scope="col">Model version</th>
+              <th scope="col">Decision policy</th>
               <th scope="col">Fraud probability</th>
               <th scope="col">Decision</th>
               <th scope="col">Decision explanation</th>
@@ -41,6 +42,7 @@ function PredictionHistory({ predictions }) {
                 <tr key={prediction.prediction_id}>
                   <td className="prediction-id">{prediction.prediction_id}</td>
                   <td>{prediction.model_version}</td>
+                  <td>{prediction.decision_policy_version}</td>
                   <td className="probability-cell">{formattedProbability}</td>
                   <td>
                     <span

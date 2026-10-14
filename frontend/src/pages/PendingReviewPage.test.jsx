@@ -160,6 +160,7 @@ test("Test successful approval", async () => {
       {
         prediction_id: 1,
         model_version: "v0.2",
+        decision_policy_version: "fraud_thresholds_v1",
         decision: "REVIEW",
         score_probability: "0.75",
         prediction_created_at: "2026-08-26T12:00:00.000Z",
@@ -197,6 +198,7 @@ test("Test successful approval", async () => {
   ).toBeInTheDocument();
   expect(screen.getByText("COMPLETED")).toBeInTheDocument();
   expect(screen.getByText("v0.2")).toBeInTheDocument();
+  expect(screen.getByText("fraud_thresholds_v1")).toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: "View Details" }),
   ).not.toBeInTheDocument();
@@ -244,15 +246,16 @@ test("Test 409 conflict", async () => {
       {
         prediction_id: 1,
         model_version: "v0.2",
+        decision_policy_version: "legacy_unversioned",
         decision: "REVIEW",
         score_probability: "0.75",
         prediction_created_at: "2026-08-26T12:00:00.000Z",
         explanation: {
-          reason_code: "SCORE_IN_REVIEW_RANGE",
+          reason_code: "DECISION_POLICY_UNVERSIONED",
           summary:
-            "The score is at least 0.50 and below 0.90, so manual review is required.",
+            "This prediction predates decision-policy version tracking, so its original threshold explanation is unavailable.",
           limitation:
-            "This score is a ranking signal from a synthetic-data model, not a calibrated real-world fraud probability.",
+            "The stored score and decision are preserved, but FraudGuard cannot verify which thresholds produced that historical decision.",
         },
       },
     ],
@@ -286,6 +289,7 @@ test("Test 409 conflict", async () => {
   ).toBeInTheDocument();
   expect(screen.getByText("DECLINED")).toBeInTheDocument();
   expect(screen.getByText("v0.2")).toBeInTheDocument();
+  expect(screen.getByText("legacy_unversioned")).toBeInTheDocument();
   expect(
     screen.queryByRole("button", { name: "Approve transaction" }),
   ).not.toBeInTheDocument();
@@ -294,13 +298,13 @@ test("Test 409 conflict", async () => {
   ).not.toBeInTheDocument();
   expect(
     screen.getByText(
-      "The score is at least 0.50 and below 0.90, so manual review is required.",
+      "This prediction predates decision-policy version tracking, so its original threshold explanation is unavailable.",
     ),
   ).toBeInTheDocument();
 
   expect(
     screen.getByText(
-      "This score is a ranking signal from a synthetic-data model, not a calibrated real-world fraud probability.",
+      "The stored score and decision are preserved, but FraudGuard cannot verify which thresholds produced that historical decision.",
     ),
   ).toBeInTheDocument();
   expect(
