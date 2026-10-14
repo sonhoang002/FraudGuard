@@ -1,5 +1,6 @@
 const REVIEW_THRESHOLD = 0.5;
 const BLOCK_THRESHOLD = 0.9;
+const CURRENT_DECISION_POLICY_VERSION = "fraud_thresholds_v1";
 
 function getFraudDecision(score) {
   if (typeof score !== "number" || !Number.isFinite(score)) {
@@ -41,4 +42,27 @@ function getFraudDecisionExplanation(score) {
   };
 }
 
-module.exports = { getFraudDecision, getFraudDecisionExplanation };
+function getStoredFraudDecisionExplanation(score, policyVersion) {
+  if (policyVersion === CURRENT_DECISION_POLICY_VERSION) {
+    return getFraudDecisionExplanation(score);
+  }
+
+  if (policyVersion === "legacy_unversioned") {
+    return {
+      reason_code: "DECISION_POLICY_UNVERSIONED",
+      summary:
+        "This prediction predates decision-policy version tracking, so its original threshold explanation is unavailable.",
+      limitation:
+        "The stored score and decision are preserved, but FraudGuard cannot verify which thresholds produced that historical decision.",
+    };
+  }
+
+  throw RangeError(`Unsupported decision policy version: ${policyVersion}`);
+}
+
+module.exports = {
+  CURRENT_DECISION_POLICY_VERSION,
+  getFraudDecision,
+  getFraudDecisionExplanation,
+  getStoredFraudDecisionExplanation,
+};

@@ -95,3 +95,24 @@ test("getTransactionById returns correct transaction when valid transactionId is
   expect(sql).toContain("t.id = $1");
   expect(values).toStrictEqual([17]);
 });
+
+test("getTransactionPredictionHistory selects policy version and returns rows unchanged", async () => {
+  const expectedRow = {
+    transaction_id: 17,
+    amount: "100.00",
+    transaction_status: "PENDING",
+    prediction_id: 17,
+    model_version: "banksim_logistic_v1",
+    decision_policy_version: "fraud_thresholds_v1",
+    score_probability: "0.823451",
+    decision: "REVIEW",
+    prediction_created_at: "2026-08-26T12:00:00.000Z",
+  };
+  pool.query.mockResolvedValue({ rows: [expectedRow] });
+  const result = await db.getTransactionPredictionHistory(17);
+  const [sql, values] = pool.query.mock.calls[0];
+
+  expect(sql).toContain("fp.decision_policy_version");
+  expect(values).toStrictEqual([17]);
+  expect(result).toStrictEqual([expectedRow]);
+});

@@ -115,6 +115,7 @@ test("uses parameterized values in the correct order and returns the database ro
   const predictionData = {
     transaction_id: 17,
     model_version: "banksim_logistic_v1",
+    decision_policy_version: "fraud_thresholds_v1",
     score_probability: 0.823451,
     decision: "REVIEW",
   };
@@ -123,6 +124,7 @@ test("uses parameterized values in the correct order and returns the database ro
     prediction_id: 42,
     transaction_id: 17,
     model_version: "banksim_logistic_v1",
+    decision_policy_version: "fraud_thresholds_v1",
     score_probability: "0.823451",
     decision: "REVIEW",
     prediction_created_at: "2026-09-23T23:30:00.125Z",
@@ -136,14 +138,21 @@ test("uses parameterized values in the correct order and returns the database ro
 
   const [sql, values] = pool.query.mock.calls[0];
 
-  expect(values).toEqual([17, "banksim_logistic_v1", 0.823451, "REVIEW"]);
+  expect(values).toEqual([
+    17,
+    "banksim_logistic_v1",
+    "fraud_thresholds_v1",
+    0.823451,
+    "REVIEW",
+  ]);
 
   expect(sql).toContain("$1");
   expect(sql).toContain("$2");
   expect(sql).toContain("$3");
   expect(sql).toContain("$4");
-
-  expect(sql).not.toContain("$5");
+  expect(sql).toContain("$5");
+  expect(sql).not.toContain("$6");
+  expect(sql).not.toContain("fraud_thresholds_v1");
   expect(sql).not.toContain("banksim_logistic_v1");
   expect(sql).not.toContain("0.823451");
   expect(sql).not.toContain("REVIEW");

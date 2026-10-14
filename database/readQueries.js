@@ -49,6 +49,7 @@ async function getTransactionPredictionHistory(transactionId) {
             t.transaction_status,
             fp.id AS prediction_id,
             fp.model_version,
+            fp.decision_policy_version,
             fp.score_probability,
             fp.decision,
             fp.created_at AS prediction_created_at

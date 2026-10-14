@@ -48,6 +48,7 @@ test("creates a pending transaction, scores it, stores REVIEW prediction, and le
     prediction_id: 42,
     transaction_id: 17,
     model_version: "banksim_logistic_v1",
+    decision_policy_version: "fraud_thresholds_v1",
     score_probability: "0.823451",
     decision: "REVIEW",
     prediction_created_at: "2026-09-23T23:30:00.125Z",
@@ -69,6 +70,7 @@ test("creates a pending transaction, scores it, stores REVIEW prediction, and le
   expect(createFraudPrediction).toHaveBeenCalledWith({
     transaction_id: createdTransaction.id,
     model_version: "banksim_logistic_v1",
+    decision_policy_version: "fraud_thresholds_v1",
     score_probability: 0.823451,
     decision: "REVIEW",
   });
@@ -220,6 +222,7 @@ test.each([
       prediction_id: 42,
       transaction_id: 17,
       model_version: "banksim_logistic_v1",
+      decision_policy_version: "fraud_thresholds_v1",
       score_probability: String(score),
       decision: expectedDecision,
       prediction_created_at: "2026-09-23T23:30:00.125Z",
@@ -240,6 +243,7 @@ test.each([
     expect(createFraudPrediction).toHaveBeenCalledWith({
       transaction_id: 17,
       model_version: "banksim_logistic_v1",
+      decision_policy_version: "fraud_thresholds_v1",
       score_probability: score,
       decision: expectedDecision,
     });

@@ -12,7 +12,11 @@ const {
 
 const { getFraudPrediction } = require("../clients/mlServiceClient");
 
-const { getFraudDecisionExplanation } = require("./fraudDecisionService");
+const {
+  CURRENT_DECISION_POLICY_VERSION,
+  getFraudDecisionExplanation,
+  getStoredFraudDecisionExplanation,
+} = require("./fraudDecisionService");
 
 const DEGRADED_ML_ERROR_CODES = new Set([
   "ML_SERVICE_TIMEOUT",
@@ -69,16 +73,21 @@ function formatFraudPrediction(prediction) {
   const {
     prediction_id,
     model_version,
+    decision_policy_version,
     score_probability,
     decision,
     prediction_created_at,
   } = prediction;
 
-  const explanation = getFraudDecisionExplanation(Number(score_probability));
+  const explanation = getStoredFraudDecisionExplanation(
+    Number(score_probability),
+    decision_policy_version,
+  );
 
   return {
     prediction_id,
     model_version,
+    decision_policy_version,
     score_probability,
     decision,
     prediction_created_at,
@@ -123,6 +132,7 @@ async function createAndScoreTransaction(transactionData) {
   const storedPrediction = await createFraudPrediction({
     transaction_id: createdTransaction.id,
     model_version: mlPrediction.model_version,
+    decision_policy_version: CURRENT_DECISION_POLICY_VERSION,
     score_probability: mlPrediction.fraud_probability,
     decision,
   });

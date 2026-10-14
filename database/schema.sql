@@ -40,6 +40,8 @@ CREATE TABLE IF NOT EXISTS fraud_predictions (
     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     transaction_id INTEGER NOT NULL REFERENCES transactions(id),
     model_version TEXT NOT NULL,
+    decision_policy_version TEXT NOT NULL
+        CHECK (btrim(decision_policy_version) <> ''),
     score_probability NUMERIC NOT NULL 
         CHECK (score_probability >= 0 AND score_probability <= 1),
     decision TEXT NOT NULL

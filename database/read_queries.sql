@@ -34,7 +34,8 @@ SELECT
     t.amount, 
     t.transaction_status, 
     fp.id AS prediction_id, 
-    fp.model_version, 
+    fp.model_version,
+    fp.decision_policy_version,
     fp.score_probability, 
     fp.decision
 FROM

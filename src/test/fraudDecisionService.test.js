@@ -1,6 +1,7 @@
 const {
   getFraudDecision,
   getFraudDecisionExplanation,
+  getStoredFraudDecisionExplanation,
 } = require("../services/fraudDecisionService");
 
 test.each([
@@ -70,4 +71,33 @@ test.each([
   ],
 ])("returns an explanation for score %p", (score, expected) => {
   expect(getFraudDecisionExplanation(score)).toEqual(expected);
+});
+
+test("current policy returns threshold explanation", () => {
+  expect(getStoredFraudDecisionExplanation(0.8, "fraud_thresholds_v1")).toEqual(
+    {
+      decision: "REVIEW",
+      reason_code: "SCORE_IN_REVIEW_RANGE",
+      summary:
+        "The score is at least 0.50 and below 0.90, so manual review is required.",
+      limitation:
+        "This score is a ranking signal from a synthetic-data model, not a calibrated real-world fraud probability.",
+    },
+  );
+});
+
+test("legacy policy returns unavailable explanation", () => {
+  expect(getStoredFraudDecisionExplanation(0.8, "legacy_unversioned")).toEqual({
+    reason_code: "DECISION_POLICY_UNVERSIONED",
+    summary:
+      "This prediction predates decision-policy version tracking, so its original threshold explanation is unavailable.",
+    limitation:
+      "The stored score and decision are preserved, but FraudGuard cannot verify which thresholds produced that historical decision.",
+  });
+});
+
+test("unknown policy throws RangeError", () => {
+  expect(() =>
+    getStoredFraudDecisionExplanation(0.8, "fraud_thresholds_v2"),
+  ).toThrow(RangeError);
 });
