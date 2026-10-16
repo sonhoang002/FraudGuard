@@ -2,7 +2,7 @@
 
 FraudGuard is a learning-first, end-to-end fraud scoring and decisioning platform. It combines a React analyst dashboard, a Node.js/Express API, PostgreSQL audit history, and a Python/FastAPI machine-learning service.
 
-The project is implemented through Day 34 of a roughly 40-day roadmap. The core application, model-backed scoring flow, failure handling, explainability, decision-policy auditability, and current-schema seed reliability are complete. Docker, deployment, authentication, and final portfolio polish are not yet complete.
+The project is implemented through Day 35 of a roughly 40-day roadmap. The core application, model-backed scoring flow, failure handling, explainability, decision-policy auditability, current-schema seed reliability, and standalone Express and FastAPI images are complete. Multi-service Docker Compose, deployment, authentication, and final portfolio polish are not yet complete.
 
 ## What FraudGuard Does
 
@@ -196,15 +196,19 @@ cd ..
 
 ### 2. Configure environment variables
 
-Copy `.env.example` to `.env`, then set your local PostgreSQL password:
+Copy `.env.example` to `.env`, then set your local PostgreSQL connection values:
 
 ```dotenv
-LOCAL_DATABASE_PASSWORD=replace_with_your_local_postgres_password
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=fraudguard
+DATABASE_USER=postgres
+DATABASE_PASSWORD=replace_with_your_local_postgres_password
 ML_SERVICE_URL=http://127.0.0.1:8000
 ML_SERVICE_TIMEOUT_MS=2000
 ```
 
-The current database pool expects PostgreSQL on `localhost:5432`, database `fraudguard`, and user `postgres`.
+The non-secret database settings shown above are also the application's local defaults. Docker Compose will later override the host with the PostgreSQL service name; the source code does not need to change between environments.
 
 ### 3. Create the database
 
@@ -247,6 +251,31 @@ npm run dev
 ```
 
 Vite forwards relative `/api` requests to Express on port `3000`. FastAPI runs on port `8000`.
+
+### 5. Build the standalone service images
+
+Build the Express production-dependency image from the repository root:
+
+```powershell
+docker build --tag fraudguard-api .
+```
+
+For an isolated startup smoke test, run the image and request its health endpoint:
+
+```powershell
+docker run --rm --publish 3001:3000 fraudguard-api
+```
+
+Then open `http://127.0.0.1:3001/health`; the expected response is `{"status":"ok"}`. This standalone check does not connect the container to PostgreSQL or FastAPI. That service wiring belongs to the planned Docker Compose checkpoint.
+
+Build the FastAPI image using `ml_service` as its isolated build context:
+
+```powershell
+docker build --tag fraudguard-ml ml_service
+docker run --rm --publish 8001:8000 fraudguard-ml
+```
+
+Its health endpoint at `http://127.0.0.1:8001/health` should return `{"status":"ok","model_loaded":true}`. The image includes the versioned model artifacts and binds Uvicorn to `0.0.0.0` so Docker can publish the service outside the container.
 
 ## Verification
 
@@ -321,7 +350,7 @@ ml_service/
 - The model was trained on synthetic BankSim data and is not suitable for real financial decisions.
 - Authentication, authorization, and reviewer identity are intentionally outside the current V1 scope.
 - Prediction insertion and automatic transaction-status update are separate database statements rather than one atomic database transaction.
-- Docker, Docker Compose, and deployment are planned for the remaining Days 35-40 but are not implemented yet.
+- The standalone Express and FastAPI images are implemented, but frontend containerization, Docker Compose service wiring, and deployment are not yet complete.
 
 ## Security Notes
 

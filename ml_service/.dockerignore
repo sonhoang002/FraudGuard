@@ -1,0 +1,9 @@
+.venv
+__pycache__
+.pytest_cache
+.ruff_cache
+data
+test_*.py
+*_practice.py
+*_analysis.py
+*.py[cod]
