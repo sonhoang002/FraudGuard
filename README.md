@@ -2,7 +2,7 @@
 
 FraudGuard is a learning-first, end-to-end fraud scoring and decisioning platform. It combines a React analyst dashboard, a Node.js/Express API, PostgreSQL audit history, and a Python/FastAPI machine-learning service.
 
-The project is implemented through Day 35 of a roughly 40-day roadmap. The core application, model-backed scoring flow, failure handling, explainability, decision-policy auditability, current-schema seed reliability, and standalone Express and FastAPI images are complete. Multi-service Docker Compose, deployment, authentication, and final portfolio polish are not yet complete.
+The project is implemented through Day 36 of a roughly 40-day roadmap. The core application, model-backed scoring flow, failure handling, explainability, decision-policy auditability, current-schema seed reliability, standalone service images, and PostgreSQL/Express/FastAPI Docker Compose stack are complete. Frontend containerization, deployment, authentication, and final portfolio polish are not yet complete.
 
 ## What FraudGuard Does
 
@@ -277,6 +277,30 @@ docker run --rm --publish 8001:8000 fraudguard-ml
 
 Its health endpoint at `http://127.0.0.1:8001/health` should return `{"status":"ok","model_loaded":true}`. The image includes the versioned model artifacts and binds Uvicorn to `0.0.0.0` so Docker can publish the service outside the container.
 
+### 6. Run the backend stack with Docker Compose
+
+Start PostgreSQL, FastAPI, and Express from the repository root:
+
+```powershell
+docker compose up --detach --build
+```
+
+Compose initializes `database/schema.sql` only when its named PostgreSQL volume is new. Seed that fresh database once:
+
+```powershell
+docker compose exec api npm run seed
+```
+
+Express is available at `http://127.0.0.1:3000`; PostgreSQL and FastAPI remain private to the Compose network. The API waits for both dependencies to report healthy before starting.
+
+Stop and remove the containers while preserving database data:
+
+```powershell
+docker compose down
+```
+
+Do not add `--volumes` unless you intentionally want to delete the isolated Compose database and initialize it again.
+
 ## Verification
 
 Backend tests from the repository root:
@@ -350,7 +374,7 @@ ml_service/
 - The model was trained on synthetic BankSim data and is not suitable for real financial decisions.
 - Authentication, authorization, and reviewer identity are intentionally outside the current V1 scope.
 - Prediction insertion and automatic transaction-status update are separate database statements rather than one atomic database transaction.
-- The standalone Express and FastAPI images are implemented, but frontend containerization, Docker Compose service wiring, and deployment are not yet complete.
+- The PostgreSQL, Express, and FastAPI Compose stack is implemented, but frontend containerization and deployment are not yet complete.
 
 ## Security Notes
 
