@@ -2,7 +2,7 @@
 
 FraudGuard is a learning-first, end-to-end fraud scoring and decisioning platform. It combines a React analyst dashboard, a Node.js/Express API, PostgreSQL audit history, and a Python/FastAPI machine-learning service.
 
-The project is implemented through Day 36 of a roughly 40-day roadmap. The core application, model-backed scoring flow, failure handling, explainability, decision-policy auditability, current-schema seed reliability, standalone service images, and PostgreSQL/Express/FastAPI Docker Compose stack are complete. Frontend containerization, deployment, authentication, and final portfolio polish are not yet complete.
+The project is implemented through Day 37 of a roughly 40-day roadmap. The core application, model-backed scoring flow, failure handling, explainability, decision-policy auditability, current-schema seed reliability, standalone service images, and full React/Express/FastAPI/PostgreSQL Docker Compose stack are complete. Deployment, authentication, and final portfolio polish are not yet complete.
 
 ## What FraudGuard Does
 
@@ -17,7 +17,10 @@ The project is implemented through Day 36 of a roughly 40-day roadmap. The core 
 ## Implemented Architecture
 
 ```text
-React analyst dashboard
+Browser
+   |
+   v
+Nginx + React analyst dashboard
           |
           v
 Node.js / Express API
@@ -208,7 +211,7 @@ ML_SERVICE_URL=http://127.0.0.1:8000
 ML_SERVICE_TIMEOUT_MS=2000
 ```
 
-The non-secret database settings shown above are also the application's local defaults. Docker Compose will later override the host with the PostgreSQL service name; the source code does not need to change between environments.
+The non-secret database settings shown above are also the application's local defaults. Docker Compose overrides the host with the PostgreSQL service name; the source code does not need to change between environments.
 
 ### 3. Create the database
 
@@ -252,7 +255,7 @@ npm run dev
 
 Vite forwards relative `/api` requests to Express on port `3000`. FastAPI runs on port `8000`.
 
-### 5. Build the standalone service images
+### 5. Build the standalone application images
 
 Build the Express production-dependency image from the repository root:
 
@@ -266,7 +269,7 @@ For an isolated startup smoke test, run the image and request its health endpoin
 docker run --rm --publish 3001:3000 fraudguard-api
 ```
 
-Then open `http://127.0.0.1:3001/health`; the expected response is `{"status":"ok"}`. This standalone check does not connect the container to PostgreSQL or FastAPI. That service wiring belongs to the planned Docker Compose checkpoint.
+Then open `http://127.0.0.1:3001/health`; the expected response is `{"status":"ok"}`. This standalone check does not connect the container to PostgreSQL or FastAPI; Compose supplies that service wiring.
 
 Build the FastAPI image using `ml_service` as its isolated build context:
 
@@ -277,9 +280,17 @@ docker run --rm --publish 8001:8000 fraudguard-ml
 
 Its health endpoint at `http://127.0.0.1:8001/health` should return `{"status":"ok","model_loaded":true}`. The image includes the versioned model artifacts and binds Uvicorn to `0.0.0.0` so Docker can publish the service outside the container.
 
-### 6. Run the backend stack with Docker Compose
+Build the multi-stage React/Nginx image:
 
-Start PostgreSQL, FastAPI, and Express from the repository root:
+```powershell
+docker build --tag fraudguard-frontend frontend
+```
+
+The Nginx configuration targets the Compose hostname `api`, so run this image through the complete stack below rather than starting it on an isolated Docker network.
+
+### 6. Run the complete stack with Docker Compose
+
+Start PostgreSQL, FastAPI, Express, and the React/Nginx frontend from the repository root:
 
 ```powershell
 docker compose up --detach --build
@@ -291,7 +302,7 @@ Compose initializes `database/schema.sql` only when its named PostgreSQL volume 
 docker compose exec api npm run seed
 ```
 
-Express is available at `http://127.0.0.1:3000`; PostgreSQL and FastAPI remain private to the Compose network. The API waits for both dependencies to report healthy before starting.
+Open `http://127.0.0.1:8080` for the analyst dashboard. Nginx forwards same-origin `/api` requests to Express over the private Compose network. PostgreSQL, FastAPI, and Express do not publish host ports; the API waits for PostgreSQL and FastAPI to become healthy, and the frontend waits for the API.
 
 Stop and remove the containers while preserving database data:
 
@@ -350,6 +361,8 @@ src/
   services/            Orchestration, decisions, and response shaping
   test/                Jest, Supertest, and query-layer tests
 frontend/
+  Dockerfile           Multi-stage Vite build and Nginx runtime image
+  nginx.conf           Static serving, SPA fallback, and private API proxy
   src/api/             Browser API helpers
   src/components/      Reusable analyst UI components
   src/pages/           Page-level request state and review workflow
@@ -374,7 +387,7 @@ ml_service/
 - The model was trained on synthetic BankSim data and is not suitable for real financial decisions.
 - Authentication, authorization, and reviewer identity are intentionally outside the current V1 scope.
 - Prediction insertion and automatic transaction-status update are separate database statements rather than one atomic database transaction.
-- The PostgreSQL, Express, and FastAPI Compose stack is implemented, but frontend containerization and deployment are not yet complete.
+- The complete local Compose stack is implemented, but public deployment is not yet complete.
 
 ## Security Notes
 
