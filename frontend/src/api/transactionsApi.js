@@ -1,5 +1,9 @@
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+
 export async function getPendingTransactions({ signal }) {
-  const response = await fetch("/api/transactions/pending", { signal });
+  const response = await fetch(`${API_BASE_URL}/api/transactions/pending`, {
+    signal,
+  });
 
   if (!response.ok) {
     throw new Error(
@@ -10,9 +14,12 @@ export async function getPendingTransactions({ signal }) {
 }
 
 export async function getTransactionDetails(transactionId, { signal }) {
-  const response = await fetch(`/api/transactions/${transactionId}`, {
-    signal,
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/transactions/${transactionId}`,
+    {
+      signal,
+    },
+  );
 
   if (!response.ok) {
     const requestError = new Error(
@@ -31,14 +38,17 @@ export async function updateTransactionStatus(
   transactionStatus,
   { signal },
 ) {
-  const response = await fetch(`/api/transactions/${transactionId}/status`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
+  const response = await fetch(
+    `${API_BASE_URL}/api/transactions/${transactionId}/status`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ transaction_status: transactionStatus }),
+      signal,
     },
-    body: JSON.stringify({ transaction_status: transactionStatus }),
-    signal,
-  });
+  );
 
   if (!response.ok) {
     const errorBody = await response.json();

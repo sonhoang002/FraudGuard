@@ -51,7 +51,7 @@ services:
           "CMD",
           "node",
           "-e",
-          "fetch('http://127.0.0.1:3000/health').then(response => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))",
+          "fetch('http://127.0.0.1:3000/ready').then(response => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))",
         ]
       interval: 5s
       timeout: 5s
@@ -60,6 +60,8 @@ services:
   frontend:
     build:
       context: ./frontend
+    environment:
+      API_UPSTREAM: http://api:3000
     depends_on:
       api:
         condition: service_healthy

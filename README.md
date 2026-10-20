@@ -104,7 +104,8 @@ These results support the educational pipeline on simulated data only. They are 
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| `GET` | `/health` | Express health check |
+| `GET` | `/health` | Shallow Express liveness check |
+| `GET` | `/ready` | Express and PostgreSQL readiness check |
 | `GET` | `/api/transactions/pending` | All pending transactions |
 | `GET` | `/api/transactions/pending?username=Customer1` | Pending transactions filtered by username |
 | `GET` | `/api/transactions/:transactionId` | One transaction with nested prediction history |
@@ -213,6 +214,8 @@ ML_SERVICE_TIMEOUT_MS=2000
 
 The non-secret database settings shown above are also the application's local defaults. Docker Compose overrides the host with the PostgreSQL service name; the source code does not need to change between environments.
 
+Hosted environments may instead provide one `DATABASE_URL` connection string. When set, it takes precedence over the separate database fields. Never commit a real connection URL because it contains database credentials.
+
 ### 3. Create the database
 
 Create an empty PostgreSQL database named `fraudguard`, then run `database/schema.sql` once using pgAdmin or another PostgreSQL client.
@@ -278,7 +281,7 @@ docker build --tag fraudguard-ml ml_service
 docker run --rm --publish 8001:8000 fraudguard-ml
 ```
 
-Its health endpoint at `http://127.0.0.1:8001/health` should return `{"status":"ok","model_loaded":true}`. The image includes the versioned model artifacts and binds Uvicorn to `0.0.0.0` so Docker can publish the service outside the container.
+Its health endpoint at `http://127.0.0.1:8001/health` should return `{"status":"ok","model_loaded":true}`. The image includes the versioned model artifacts, binds Uvicorn to `0.0.0.0`, and reads the runtime `PORT` value with a local and Compose default of `8000`.
 
 Build the multi-stage React/Nginx image:
 
@@ -302,7 +305,7 @@ Compose initializes `database/schema.sql` only when its named PostgreSQL volume 
 docker compose exec api npm run seed
 ```
 
-Open `http://127.0.0.1:8080` for the analyst dashboard. Nginx forwards same-origin `/api` requests to Express over the private Compose network. PostgreSQL, FastAPI, and Express do not publish host ports; the API waits for PostgreSQL and FastAPI to become healthy, and the frontend waits for the API.
+Open `http://127.0.0.1:8080` for the analyst dashboard. At container startup, the official Nginx image renders its configuration from `API_UPSTREAM`; Compose sets that value to the private Express address. Nginx then forwards same-origin `/api` requests over the private network. PostgreSQL, FastAPI, and Express do not publish host ports; the API waits for PostgreSQL and FastAPI to become healthy, and the frontend waits for the API.
 
 Stop and remove the containers while preserving database data:
 
@@ -340,7 +343,7 @@ python -m ruff format --check ml_service
 
 Current automated verification:
 
-- 132 passing backend Jest/Supertest and query-layer tests;
+- 138 passing backend Jest/Supertest, configuration, and query-layer tests;
 - 7 passing frontend Vitest/React Testing Library tests;
 - 5 passing Python pytest tests;
 - frontend ESLint and production build passing.
@@ -362,7 +365,7 @@ src/
   test/                Jest, Supertest, and query-layer tests
 frontend/
   Dockerfile           Multi-stage Vite build and Nginx runtime image
-  nginx.conf           Static serving, SPA fallback, and private API proxy
+  nginx.conf.template  Static serving, SPA fallback, and configurable API proxy
   src/api/             Browser API helpers
   src/components/      Reusable analyst UI components
   src/pages/           Page-level request state and review workflow

@@ -1010,3 +1010,67 @@ test("PATCH returns 500 when the status lookup query fails", async () => {
   );
   expect(db.getTransactionStatusById).toHaveBeenCalledWith(17);
 });
+
+test("GET /ready returns 200 when database is available", async () => {
+  db.checkDatabaseConnection.mockResolvedValue(undefined);
+
+  const response = await request(app).get("/ready");
+
+  expect(response.status).toBe(200);
+  expect(response.body).toStrictEqual({
+    status: "ready",
+  });
+
+  expect(db.checkDatabaseConnection).toHaveBeenCalledTimes(1);
+});
+
+test("GET /ready returns 503 when database is unavailable", async () => {
+  db.checkDatabaseConnection.mockRejectedValue(
+    new Error("Database connection failed"),
+  );
+
+  const response = await request(app).get("/ready");
+
+  expect(response.status).toBe(503);
+  expect(response.body).toStrictEqual({
+    status: "not_ready",
+  });
+
+  expect(db.checkDatabaseConnection).toHaveBeenCalledTimes(1);
+});
+
+describe("CORS", () => {
+  const originalOrigin = process.env.FRONTEND_ORIGIN;
+  const allowedOrigin = "https://fraudguard-frontend.onrender.com";
+
+  afterEach(() => {
+    if (originalOrigin === undefined) {
+      delete process.env.FRONTEND_ORIGIN;
+    } else {
+      process.env.FRONTEND_ORIGIN = originalOrigin;
+    }
+  });
+
+  test("allows PATCH status preflight from trusted origin", async () => {
+    process.env.FRONTEND_ORIGIN = allowedOrigin;
+
+    const response = await request(app)
+      .options("/api/transactions/17/status")
+      .set("Origin", allowedOrigin)
+      .set("Access-Control-Request-Method", "PATCH");
+
+    expect(response.status).toBe(204);
+    expect(response.headers["access-control-allow-origin"]).toBe(allowedOrigin);
+  });
+
+  test("does not approve an untrusted origin", async () => {
+    process.env.FRONTEND_ORIGIN = allowedOrigin;
+
+    const response = await request(app)
+      .options("/api/transactions/17/status")
+      .set("Origin", "https://untrusted.example.com")
+      .set("Access-Control-Request-Method", "PATCH");
+
+    expect(response.headers["access-control-allow-origin"]).toBeUndefined();
+  });
+});

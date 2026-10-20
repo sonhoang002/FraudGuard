@@ -118,9 +118,14 @@ async function getTransactionById(transactionId) {
   return result.rows[0];
 }
 
+async function checkDatabaseConnection() {
+  await pool.query(`SELECT 1`);
+}
+
 module.exports = {
   getPendingTransactions,
   getTransactionPredictionHistory,
   getTransactionStatusById,
   getTransactionById,
+  checkDatabaseConnection,
 };

@@ -49,11 +49,11 @@ CREATE TABLE IF NOT EXISTS fraud_predictions (
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_accounts_user_id
+CREATE INDEX IF NOT EXISTS idx_accounts_user_id
 ON accounts(user_id);
 
-CREATE INDEX idx_transactions_account_id
+CREATE INDEX IF NOT EXISTS idx_transactions_account_id
 ON transactions(account_id);
 
-CREATE INDEX idx_fraud_predictions_transaction_id
+CREATE INDEX IF NOT EXISTS idx_fraud_predictions_transaction_id
 ON fraud_predictions(transaction_id);

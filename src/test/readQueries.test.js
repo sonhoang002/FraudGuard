@@ -116,3 +116,12 @@ test("getTransactionPredictionHistory selects policy version and returns rows un
   expect(values).toStrictEqual([17]);
   expect(result).toStrictEqual([expectedRow]);
 });
+
+test("executes SELECT 1", async () => {
+  pool.query.mockResolvedValue({ rows: [{ "?column?": 1 }] });
+
+  await db.checkDatabaseConnection();
+
+  expect(pool.query).toHaveBeenCalledTimes(1);
+  expect(pool.query).toHaveBeenCalledWith("SELECT 1");
+});

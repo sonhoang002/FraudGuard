@@ -7,7 +7,9 @@
     "seed": "node database/queries.js",
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "jest"
+    "test": "jest",
+    "migrate": "node database/migrate.js",
+    "start:render": "npm run migrate && npm start"
   },
   "jest": {
     "roots": [
@@ -19,6 +21,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "pg": "^8.23.0"
