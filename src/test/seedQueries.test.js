@@ -1,10 +1,18 @@
 jest.mock("../../database/pool");
 
 const pool = require("../../database/pool");
-const { insertStatement } = require("../../database/queries");
+const { insertStatement, main } = require("../../database/queries");
+
+let originalExitCode;
 
 beforeEach(() => {
+  originalExitCode = process.exitCode;
   jest.resetAllMocks();
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+  process.exitCode = originalExitCode;
 });
 
 function createMockClient() {
@@ -80,4 +88,19 @@ test("rolls back and releases the client when a seed insert fails", async () => 
   expect(client.query.mock.calls.at(-1)).toEqual(["ROLLBACK"]);
   expect(client.query).not.toHaveBeenCalledWith("COMMIT");
   expect(client.release).toHaveBeenCalledTimes(1);
+});
+
+test("command failure sets exit code and closes pool", async () => {
+  const error = new Error("Database unavailable");
+
+  const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+  pool.connect.mockRejectedValue(error);
+  pool.end.mockResolvedValue();
+
+  await main();
+
+  expect(consoleSpy).toHaveBeenCalledWith(error);
+  expect(process.exitCode).toBe(1);
+  expect(pool.end).toHaveBeenCalledTimes(1);
 });

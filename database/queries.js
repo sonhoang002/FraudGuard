@@ -82,8 +82,19 @@ async function insertStatement() {
   }
 }
 
-if (require.main === module) {
-  insertStatement().catch(console.error);
+async function main() {
+  try {
+    await insertStatement();
+  } catch (err) {
+    console.error(err);
+    process.exitCode = 1;
+  } finally {
+    await pool.end();
+  }
 }
 
-module.exports = { insertStatement };
+if (require.main === module) {
+  main();
+}
+
+module.exports = { insertStatement, main };

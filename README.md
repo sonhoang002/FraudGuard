@@ -2,7 +2,15 @@
 
 FraudGuard is a learning-first, end-to-end fraud scoring and decisioning platform. It combines a React analyst dashboard, a Node.js/Express API, PostgreSQL audit history, and a Python/FastAPI machine-learning service.
 
-The project is implemented through Day 37 of a roughly 40-day roadmap. The core application, model-backed scoring flow, failure handling, explainability, decision-policy auditability, current-schema seed reliability, standalone service images, and full React/Express/FastAPI/PostgreSQL Docker Compose stack are complete. Deployment, authentication, and final portfolio polish are not yet complete.
+The project is implemented through Day 39 of a roughly 40-day roadmap. The core application, model-backed scoring flow, failure handling, explainability, decision-policy auditability, current-schema seed reliability, standalone service images, full React/Express/FastAPI/PostgreSQL Docker Compose stack, and public Render deployment are complete. Authentication and final portfolio polish remain outside the completed milestones.
+
+## Live Demo
+
+- Analyst dashboard: [fraudguard-frontend-h01i.onrender.com](https://fraudguard-frontend-h01i.onrender.com/)
+- Express readiness: [fraudguard-api-n3e1.onrender.com/ready](https://fraudguard-api-n3e1.onrender.com/ready)
+- FastAPI model health: [fraudguard-ml-6jvt.onrender.com/health](https://fraudguard-ml-6jvt.onrender.com/health)
+
+The demo uses Render's free services. The Express and FastAPI services can spin down while idle, so the first request after inactivity may take about a minute. The free PostgreSQL database expires 30 days after creation, so the demo and its sample data are temporary. The model was trained on synthetic BankSim data and must not be used for real financial decisions.
 
 ## What FraudGuard Does
 
@@ -343,7 +351,7 @@ python -m ruff format --check ml_service
 
 Current automated verification:
 
-- 138 passing backend Jest/Supertest, configuration, and query-layer tests;
+- 143 passing backend Jest/Supertest, configuration, and query-layer tests;
 - 7 passing frontend Vitest/React Testing Library tests;
 - 5 passing Python pytest tests;
 - frontend ESLint and production build passing.
@@ -390,7 +398,7 @@ ml_service/
 - The model was trained on synthetic BankSim data and is not suitable for real financial decisions.
 - Authentication, authorization, and reviewer identity are intentionally outside the current V1 scope.
 - Prediction insertion and automatic transaction-status update are separate database statements rather than one atomic database transaction.
-- The complete local Compose stack is implemented, but public deployment is not yet complete.
+- Render's free web services can cold-start after inactivity, and the free PostgreSQL database expires 30 days after creation without backups.
 
 ## Security Notes
 
