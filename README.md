@@ -2,7 +2,7 @@
 
 FraudGuard is a learning-first, end-to-end fraud scoring and decisioning platform. It combines a React analyst dashboard, a Node.js/Express API, PostgreSQL audit history, and a Python/FastAPI machine-learning service.
 
-The project is implemented through Day 39 of a roughly 40-day roadmap. The core application, model-backed scoring flow, failure handling, explainability, decision-policy auditability, current-schema seed reliability, standalone service images, full React/Express/FastAPI/PostgreSQL Docker Compose stack, and public Render deployment are complete. Authentication and final portfolio polish remain outside the completed milestones.
+FraudGuard's core V1 is complete and publicly deployed on Render. It scores transactions with a versioned machine-learning model, preserves auditable prediction history, explains Node-owned decisions, degrades safely when scoring fails, and gives analysts a manual-review workflow.
 
 ## Live Demo
 
@@ -11,6 +11,10 @@ The project is implemented through Day 39 of a roughly 40-day roadmap. The core 
 - FastAPI model health: [fraudguard-ml-6jvt.onrender.com/health](https://fraudguard-ml-6jvt.onrender.com/health)
 
 The demo uses Render's free services. The Express and FastAPI services can spin down while idle, so the first request after inactivity may take about a minute. The free PostgreSQL database expires 30 days after creation, so the demo and its sample data are temporary. The model was trained on synthetic BankSim data and must not be used for real financial decisions.
+
+## Analyst Review Workflow
+
+![FraudGuard analyst dashboard showing transaction context, fraud probability, decision policy, explanation, and manual-review controls](docs/screenshots/analyst-review.png)
 
 ## What FraudGuard Does
 
@@ -391,6 +395,7 @@ ml_service/
 - PostgreSQL and `pg`
 - Python 3.14, pandas, NumPy, and scikit-learn
 - FastAPI and Uvicorn
+- Docker, Docker Compose, Nginx, and Render
 - Jest, Supertest, Vitest, React Testing Library, pytest, Ruff, and ESLint
 
 ## Current Limitations
@@ -407,7 +412,9 @@ ml_service/
 - Load the joblib model only from a trusted project source because deserialization can execute code.
 - FraudGuard is an educational portfolio project, not a production fraud-control system.
 
-## Roadmap
+## Completed Development Roadmap
+
+All planned V1 phases are complete:
 
 - Days 1-4: PostgreSQL architecture and data integrity
 - Days 5-9: Express API and transaction workflows
